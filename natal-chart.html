@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Natal Chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --sky:#7FB3D9; --moon:#B7BEE0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--gold);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--moon); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:700px; line-height:1.6;}
+
+  .ruler-toggle-row{display:flex; align-items:center; gap:10px; margin-top:16px;}
+  .ruler-toggle-label{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint);}
+  .ruler-toggle{display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:3px;}
+  .ruler-toggle button{background:transparent; border:none; color:var(--text-dim); font-family:'Inter'; font-size:12px; font-weight:500; padding:7px 12px; border-radius:7px; cursor:pointer; transition:all .15s ease;}
+  .ruler-toggle button.active{background:var(--gold); color:#1a1406;}
+
+  .layout{display:grid; grid-template-columns:1fr 380px; gap:18px; align-items:start;}
+  @media (max-width: 980px){.layout{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:17px; margin:0 0 8px;}
+  .panel .hint{font-size:12.5px; color:var(--text-dim); margin-bottom:14px; line-height:1.6;}
+
+  .wheel-stage{display:flex; flex-direction:column; align-items:center;}
+  #wheelHost{width:100%; max-width:620px;}
+  .wheel-ring{fill:none; stroke:var(--edge); stroke-width:1;}
+  .wheel-spoke{stroke:var(--edge); stroke-width:1;}
+  .house-num{font-family:'IBM Plex Mono', monospace; font-size:11px; fill:var(--text-faint); text-anchor:middle;}
+  .sign-glyph{font-size:15px; fill:var(--text-dim); text-anchor:middle; dominant-baseline:central; font-family:'IBM Plex Mono', monospace;}
+  .point-dot{cursor:pointer;}
+  .point-label{font-family:'IBM Plex Mono', monospace; text-anchor:middle; dominant-baseline:central; pointer-events:none; font-weight:600;}
+  .point-dot.selected circle{stroke-width:3;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:8px 12px; justify-content:center; margin-top:14px; font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-dim);}
+  .legend span.dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; vertical-align:middle;}
+
+  .quicklist{display:flex; flex-direction:column; gap:5px; max-height:520px; overflow-y:auto; padding-right:4px;}
+  .quick-item{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
+    background:var(--input-bg); border:1px solid var(--border); cursor:pointer; transition:border-color .15s ease;
+  }
+  .quick-item:hover, .quick-item.active{border-color:var(--gold);}
+  .quick-glyph{width:24px; text-align:center; font-size:13px; flex-shrink:0;}
+  .quick-name{font-family:'Fraunces', serif; font-size:13.5px; color:var(--text); flex:1;}
+  .quick-pos{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-faint);}
+
+  .detail-panel{max-width:820px; margin:0 auto;}
+  .detail-empty{color:var(--text-faint); font-size:13px; line-height:1.6;}
+  .detail-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .detail-glyph{width:46px; height:46px; border-radius:50%; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; font-family:'IBM Plex Mono', monospace; font-weight:700; flex-shrink:0;}
+  .detail-title{font-family:'Fraunces', serif; font-weight:500; font-size:21px;}
+  .detail-title .accent{color:var(--gold);}
+  .detail-tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+  .detail-section{margin-bottom:26px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.07s;}
+  .detail-section:nth-of-type(3){animation-delay:.12s;}
+  .detail-section:nth-of-type(4){animation-delay:.17s;}
+  .detail-section:nth-of-type(5){animation-delay:.22s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--moon); margin:0 0 10px;}
+  .detail-section p{font-size:14.5px; line-height:1.8; color:var(--text); margin:0;}
+  .detail-section p + p{margin-top:12px;}
+  .condition-box{
+    display:flex; align-items:flex-start; gap:10px; background:var(--input-bg); border:1px solid var(--border);
+    border-radius:8px; padding:12px 14px; flex-direction:column;
+  }
+  .badge{font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:4px 9px; border-radius:20px;}
+  .badge.regard{background:#16332C; color:var(--teal); border:1px solid var(--teal);}
+  .badge.aversion{background:#332020; color:#E08585; border:1px solid #E08585;}
+
+  .synth-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; margin-top:12px;}
+  .synth-card{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:12px;}
+  .synth-card .sname{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em;}
+  .synth-card .sval{font-family:'Fraunces', serif; font-size:16px; color:var(--text); margin-top:4px;}
+  .bar-row{display:flex; align-items:center; gap:8px; margin-top:6px; font-family:'IBM Plex Mono', monospace; font-size:11px;}
+  .bar-track{flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:3px;}
+
+  .transit-list{display:flex; flex-direction:column; gap:8px; margin-top:14px;}
+  .transit-item{
+    background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:11px 13px;
+    cursor:pointer; transition:border-color .15s ease; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .transit-item:hover{border-color:var(--gold);}
+  .transit-item .tleft{font-size:13px; color:var(--text);}
+  .transit-item .tleft b{color:var(--gold);}
+  .transit-item .torb{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-faint); white-space:nowrap;}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:12px;}
+  .chart-source-note a{color:var(--gold); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · The Full Natal Chart</div>
+    <h1>Every point, in one wheel</h1>
+    <p class="sub">Everything the other pages compute piece by piece, assembled into one chart. Click any point on the wheel, or in the list, for its full profile: sign expression, house placement, ruler condition, and where it fits in the chart as a whole. Below that: how the chart reads together, and which of today's transiting planets are actively touching your natal points right now.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+    <div class="ruler-toggle-row">
+      <span class="ruler-toggle-label">Rulership</span>
+      <div class="ruler-toggle">
+        <button id="btnModern" class="active">Modern</button>
+        <button id="btnTrad">Traditional</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="panel wheel-stage">
+      <div id="wheelHost"></div>
+      <div class="legend" id="legendRow"></div>
+    </div>
+
+    <div class="panel">
+      <h2>All points</h2>
+      <div class="hint">Tap any point, on the wheel or here, for its full reading.</div>
+      <div class="quicklist" id="quickList"></div>
+    </div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Tap any point on the wheel or in the list to read its full profile.</div>
+  </div>
+
+  <div class="panel">
+    <h2>The chart as a whole</h2>
+    <div class="hint">Zoom out from any single point, the overall balance of elements, modalities, and hemispheres tells its own story.</div>
+    <div id="synthBody"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Current transits</h2>
+    <div class="hint" id="transitHint"></div>
+    <div class="transit-list" id="transitList"></div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="transitDetailBody" class="detail-empty">Tap any transit above for the full interpretation.</div>
+  </div>
+
+  <footer>NATAL CHART · full wheel, synthesis, and live-anchored transits · not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- reference data ---------------- */
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const SIGN_KEYWORDS = {
+  Aries:"initiating, direct, and quick to act", Taurus:"steady, sensory, and slow to move",
+  Gemini:"curious, communicative, and quick-shifting", Cancer:"protective, feeling-based, and cyclical",
+  Leo:"expressive, warm, and proud", Virgo:"precise, discerning, and service-minded",
+  Libra:"relational, balancing, and aesthetic", Scorpio:"intense, probing, and private",
+  Sagittarius:"expansive, philosophical, and blunt", Capricorn:"disciplined, structured, and patient",
+  Aquarius:"independent, unconventional, and idea-driven", Pisces:"dreamy, boundaryless, and empathic"
+};
+const SIGN_PROFILE = {
+  Aries:      { element:'Fire',  modality:'Cardinal', core:"it moves first and asks questions later, decisive almost to a fault, with a low tolerance for hesitation" },
+  Taurus:     { element:'Earth', modality:'Fixed',    core:"it moves slowly and deliberately, resists being rushed, and trusts what can be touched, tasted, or verified" },
+  Gemini:     { element:'Air',   modality:'Mutable',  core:"it processes out loud, talking, comparing notes, gathering options, and stays restless until there's enough variety on the table" },
+  Cancer:     { element:'Water', modality:'Cardinal', core:"it leads with feeling and assesses emotional safety before anything else, moving in a tidal rhythm of advance and retreat" },
+  Leo:        { element:'Fire',  modality:'Fixed',    core:"it commits fully once engaged, wants to be seen and to matter, and resists being treated as interchangeable" },
+  Virgo:      { element:'Earth', modality:'Mutable',  core:"it refines before it declares anything finished, notices what's wrong before what's right, adapts through fixing rather than reinventing" },
+  Libra:      { element:'Air',   modality:'Cardinal', core:"it initiates through relationship and negotiation, weighs both sides carefully, and grows uncomfortable the moment things turn adversarial" },
+  Scorpio:    { element:'Water', modality:'Fixed',    core:"it commits with total intensity, distrusts anything that stays on the surface, and needs to understand the hidden mechanism before it trusts" },
+  Sagittarius:{ element:'Fire',  modality:'Mutable',  core:"it adapts by expanding outward, new experiences, new frameworks, rather than digging in, and says the blunt thing before softening it" },
+  Capricorn:  { element:'Earth', modality:'Cardinal', core:"it initiates through discipline and long-range planning, delays gratification on purpose, and measures success by whether it lasts" },
+  Aquarius:   { element:'Air',   modality:'Fixed',    core:"it holds its position even under social pressure, cares more about the principle than the peace, and processes through detached analysis" },
+  Pisces:     { element:'Water', modality:'Mutable',  core:"it adapts by dissolving edges, absorbing what's around it, blending timelines, imaginative but prone to avoiding hard boundaries" }
+};
+const TRAD_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Mars",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Saturn",Pisces:"Jupiter"};
+const MODERN_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Pluto",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Uranus",Pisces:"Neptune"};
+const EXALTATION = {Sun:'Aries',Moon:'Taurus',Mercury:'Virgo',Venus:'Pisces',Mars:'Capricorn',Jupiter:'Cancer',Saturn:'Libra'};
+const HOUSE_MEANINGS = {
+  1:"the body, appearance, and how you initiate", 2:"resources, income, and what you hold onto",
+  3:"communication, siblings, and everyday learning", 4:"home, family roots, and your private foundation",
+  5:"creativity, romance, children, and pleasure", 6:"daily work, health routines, and service",
+  7:"partnership, marriage, contracts, significant others", 8:"shared resources, intimacy, and transformation",
+  9:"belief, higher education, and long travel", 10:"career, public reputation, and the role you're known for",
+  11:"friendship, community, and hopes for the future", 12:"the unconscious, isolation, and what stays hidden"
+};
+const HOUSE_CONCRETE = {
+  1:"your body and physical vitality, the first impression you make",
+  2:"your income, your possessions, how tightly worth is tied to what you own",
+  3:"siblings, texts and emails, the offhand way you talk day to day",
+  4:"your childhood home, your parents, the domestic patterns you inherited",
+  5:"dating, creative projects you finish, children, the risks you take for fun",
+  6:"your job's daily grind, health routines, pets, an ordinary Tuesday",
+  7:"your marriage or committed partner, business partners, open rivals",
+  8:"shared money, sex, therapy, whatever gets entangled with someone else's resources",
+  9:"travel abroad, higher education, publishing, the worldview you build on",
+  10:"your career trajectory, your public reputation, the role strangers would use to describe you",
+  11:"your friend groups, long-range goals, the causes you attach hope to",
+  12:"solitude, institutions, secrets, including ones you keep from yourself"
+};
+const HOUSE_QUADRANT = {1:'angular',4:'angular',7:'angular',10:'angular', 2:'succedent',5:'succedent',8:'succedent',11:'succedent', 3:'cadent',6:'cadent',9:'cadent',12:'cadent'};
+const QUADRANT_TEXT = {
+  angular:"This is an angular house, themes here tend to show up as visible, nameable events rather than a slow drift.",
+  succedent:"This is a succedent house, themes here build gradually, as something accumulated or maintained over time rather than a single moment.",
+  cadent:"This is a cadent house, themes here run mental and behind-the-scenes, often understood in hindsight more than experienced in the moment."
+};
+
+const PLANET_DOMAIN = {
+  Sun:"identity, vitality, and conscious will", Moon:"emotional need, instinct, and what makes you feel safe",
+  Mercury:"thought, perception, and communication", Venus:"what you value and what you're drawn to",
+  Mars:"drive, assertion, and how you go after what you want", Jupiter:"expansion, meaning-making, and where you seek growth",
+  Saturn:"structure, responsibility, and where you build discipline", Uranus:"independence, disruption, and sudden insight",
+  Neptune:"imagination, dissolution, and idealism", Pluto:"transformation, power, and what runs at the depths",
+  'North Node':"the direction you're growing toward, unfamiliar but purposeful",
+  'South Node':"the comfort zone, the innate talent you default to",
+  Chiron:"the core wound, and the gift that grows from tending it",
+  Lilith:"what you've suppressed, disowned, or been shamed out of expressing",
+  Fortune:"body, material circumstance, and what happens to you",
+  Spirit:"willpower and the actions you deliberately take",
+  Eros:"desire and what pulls you toward closeness",
+  Ascendant:"your instinctive front, the lens everything gets filtered through",
+  Midheaven:"your public role and sense of direction out in the world",
+  Vertex:"points of fated encounter, people and events that feel like they happened to you rather than by choice"
+};
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+
+/* ---------------- the natal chart ---------------- */
+const ASC = SHARED ? SHARED.points.Ascendant : 178.0992;
+const MC = SHARED ? (SHARED.points.Midheaven !== undefined ? SHARED.points.Midheaven : 87.8186) : 87.8186;
+
+const REFERENCE_NATAL_POINTS = [
+  {id:'Sun', glyph:'☉', lon:102.7819, color:'#E0B84D'},
+  {id:'Moon', glyph:'☽', lon:191.9738, color:'#B7BEE0'},
+  {id:'Mercury', glyph:'☿', lon:90.1404, color:'#9FBF9F'},
+  {id:'Venus', glyph:'♀', lon:107.3139, color:'#E08FA8'},
+  {id:'Mars', glyph:'♂', lon:148.6073, color:'#D97757'},
+  {id:'Jupiter', glyph:'♃', lon:52.8048, color:'#C9A6E8'},
+  {id:'Saturn', glyph:'♄', lon:123.3802, color:'#8E8FBF'},
+  {id:'Uranus', glyph:'♅', lon:213.0523, color:'#7FB3D9', retro:true},
+  {id:'Neptune', glyph:'♆', lon:251.7912, color:'#6FA0C9', retro:true},
+  {id:'Pluto', glyph:'♇', lon:188.9965, color:'#B08F8F'},
+  {id:'North Node', glyph:'☊', lon:219.4320, color:'#D9C48E', retro:true},
+  {id:'South Node', glyph:'☋', lon:39.4320, color:'#8A8064'},
+  {id:'Chiron', glyph:'⚷', lon:75.0, color:'#E08585'},
+  {id:'Lilith', glyph:'⚸', lon:27.4177, color:'#8B6B8E'},
+  {id:'Fortune', glyph:'⊗', lon:267.2911, color:'#D9A94E'},
+  {id:'Spirit', glyph:'⊕', lon:88.9074, color:'#9A8CD6'},
+  {id:'Eros', glyph:'❦', lon:196.5058, color:'#5FB8AC'},
+  {id:'Vertex', glyph:'Vx', lon:354.6364, color:'#7FB3D9'}
+];
+
+// Fortune, Spirit, Eros, and South Node are derived, not stored, computed the same way every
+// other page derives them, from Ascendant, Sun, Moon, Venus, and sect. Vertex isn't in this
+// dashboard's shared schema (it needs geographic latitude, not just longitude), so a saved
+// chart doesn't show one, only the built-in reference chart has one on file.
+function buildNatalPointsFromShared(chart){
+  const P = chart.points;
+  const isDay = chart.sect === 'day';
+  const fortune = isDay ? norm(P.Ascendant+P.Moon-P.Sun) : norm(P.Ascendant+P.Sun-P.Moon);
+  const spirit  = isDay ? norm(P.Ascendant+P.Sun-P.Moon) : norm(P.Ascendant+P.Moon-P.Sun);
+  const eros    = isDay ? norm(P.Ascendant+P.Venus-spirit) : norm(P.Ascendant+spirit-P.Venus);
+  const southNode = norm(P.NorthNode + 180);
+  const R = chart.retrograde || {};
+  return [
+    {id:'Sun', glyph:'☉', lon:P.Sun, color:'#E0B84D', retro:!!R.Sun},
+    {id:'Moon', glyph:'☽', lon:P.Moon, color:'#B7BEE0', retro:!!R.Moon},
+    {id:'Mercury', glyph:'☿', lon:P.Mercury, color:'#9FBF9F', retro:!!R.Mercury},
+    {id:'Venus', glyph:'♀', lon:P.Venus, color:'#E08FA8', retro:!!R.Venus},
+    {id:'Mars', glyph:'♂', lon:P.Mars, color:'#D97757', retro:!!R.Mars},
+    {id:'Jupiter', glyph:'♃', lon:P.Jupiter, color:'#C9A6E8', retro:!!R.Jupiter},
+    {id:'Saturn', glyph:'♄', lon:P.Saturn, color:'#8E8FBF', retro:!!R.Saturn},
+    {id:'Uranus', glyph:'♅', lon:P.Uranus, color:'#7FB3D9', retro:!!R.Uranus},
+    {id:'Neptune', glyph:'♆', lon:P.Neptune, color:'#6FA0C9', retro:!!R.Neptune},
+    {id:'Pluto', glyph:'♇', lon:P.Pluto, color:'#B08F8F', retro:!!R.Pluto},
+    {id:'North Node', glyph:'☊', lon:P.NorthNode, color:'#D9C48E', retro:true},
+    {id:'South Node', glyph:'☋', lon:southNode, color:'#8A8064'},
+    {id:'Chiron', glyph:'⚷', lon:P.Chiron, color:'#E08585'},
+    {id:'Lilith', glyph:'⚸', lon:P.Lilith, color:'#8B6B8E'},
+    {id:'Fortune', glyph:'⊗', lon:fortune, color:'#D9A94E'},
+    {id:'Spirit', glyph:'⊕', lon:spirit, color:'#9A8CD6'},
+    {id:'Eros', glyph:'❦', lon:eros, color:'#5FB8AC'}
+  ];
+}
+const NATAL_POINTS = SHARED ? buildNatalPointsFromShared(SHARED) : REFERENCE_NATAL_POINTS;
+
+function norm(d){ let x=d%360; if(x<0)x+=360; return x; }
+function toSignDeg(lon){
+  const idx = Math.floor(norm(lon)/30) % 12;
+  const within = norm(lon) - idx*30;
+  const deg = Math.floor(within);
+  const min = Math.round((within-deg)*60);
+  return { sign: SIGNS[idx], deg, min, idx };
+}
+function fmt(lon){ const s = toSignDeg(lon); return `${s.sign} ${String(s.deg).padStart(2,'0')}°${String(s.min).padStart(2,'0')}'`; }
+function ordinal(n){ return n+ (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th'); }
+function houseOf(lon){ const ascIdx = toSignDeg(ASC).idx; const idx = toSignDeg(lon).idx; return ((idx-ascIdx+12)%12)+1; }
+function oppositeSign(sign){ const idx=SIGNS.indexOf(sign); return SIGNS[(idx+6)%12]; }
+function rulersFor(system){ return system === 'modern' ? MODERN_RULERS : TRAD_RULERS; }
+function domicileTable(rulers){
+  const d = {};
+  Object.keys(rulers).forEach(sign=>{ const p=rulers[sign]; if(!d[p])d[p]=[]; d[p].push(sign); });
+  return d;
+}
+// Domicile is read from whichever ruler table is active, so Uranus/Neptune/Pluto only
+// get a domicile badge (Aquarius/Pisces/Scorpio) under modern rulership. Exaltation, detriment,
+// and fall stay on the classical seven-planet table, there's no real consensus placement for
+// the outer planets on those, domicile alone is the defensible modern addition.
+function dignityOf(planet, sign, system){
+  const dom = domicileTable(rulersFor(system));
+  if(dom[planet] && dom[planet].includes(sign)) return 'domicile';
+  if(EXALTATION[planet] === sign) return 'exaltation';
+  if(dom[planet] && dom[planet].map(oppositeSign).includes(sign)) return 'detriment';
+  if(EXALTATION[planet] && oppositeSign(EXALTATION[planet]) === sign) return 'fall';
+  return 'peregrine';
+}
+const CLASSICAL_SEVEN = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn'];
+function showsDignity(id, system){
+  if(CLASSICAL_SEVEN.includes(id)) return true;
+  return system === 'modern' && ['Uranus','Neptune','Pluto'].includes(id);
+}
+
+/* ---------------- live dispositor-chain resolution (mirrors dispositor-tree.html) ---------------- */
+const CHAIN_PLANETS = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+function computeDispositorSummary(system){
+  const rulers = rulersFor(system);
+  const edgeTo = {};
+  CHAIN_PLANETS.forEach(p=>{
+    const point = NATAL_POINTS.find(np=>np.id===p);
+    edgeTo[p] = rulers[toSignDeg(point.lon).sign];
+  });
+  const state = {}; const cycleSet = new Set();
+  CHAIN_PLANETS.forEach(p=> state[p]=0);
+  CHAIN_PLANETS.forEach(start=>{
+    if(state[start] !== 0) return;
+    const path = []; let node = start;
+    while(true){
+      if(state[node] === 1){
+        const idx = path.indexOf(node);
+        for(let i=idx;i<path.length;i++) cycleSet.add(path[i]);
+        break;
+      }
+      if(state[node] === 2) break;
+      state[node] = 1; path.push(node); node = edgeTo[node];
+    }
+    path.forEach(n=>{ if(state[n]===1) state[n]=2; });
+  });
+  let finalDispositors = [], mutualReceptionGroups = [];
+  if(cycleSet.size){
+    const visited = new Set();
+    cycleSet.forEach(n=>{
+      if(visited.has(n)) return;
+      const group = []; let cur = n;
+      do{ group.push(cur); visited.add(cur); cur = edgeTo[cur]; } while(cur !== n);
+      if(group.length === 1) finalDispositors.push(group[0]); else mutualReceptionGroups.push(group);
+    });
+  }
+  return { finalDispositors, mutualReceptionGroups };
+}
+const DIGNITY_BLURB = {
+  domicile:"strong and at home here, comfortable operating on its own terms",
+  exaltation:"elevated and confident here, performing at its best",
+  detriment:"working against the grain here, has to work harder to express cleanly",
+  fall:"weakened here, its usual strengths are hard to access",
+  peregrine:"in neutral territory, no special strength or struggle from sign placement alone"
+};
+function isAversion(lon1, lon2){
+  const i1=toSignDeg(lon1).idx, i2=toSignDeg(lon2).idx;
+  const d0=Math.abs(i1-i2), d=Math.min(d0,12-d0);
+  return d===1||d===5;
+}
+
+/* ---------------- wheel rendering ---------------- */
+const CX=310, CY=310, R_OUTER=270, R_ZODIAC=235, R_HOUSE=200, R_POINT=155;
+function polar(lon, r){ const a=(lon-90)*Math.PI/180; return {x:CX+Math.cos(a)*r, y:CY+Math.sin(a)*r}; }
+
+let selectedId = null;
+
+function renderWheel(){
+  let svg = `<svg viewBox="0 0 620 620" width="100%" style="max-width:620px; display:block; margin:0 auto;">`;
+  svg += `<circle class="wheel-ring" cx="${CX}" cy="${CY}" r="${R_OUTER}"/>`;
+  svg += `<circle class="wheel-ring" cx="${CX}" cy="${CY}" r="${R_ZODIAC}"/>`;
+  svg += `<circle class="wheel-ring" cx="${CX}" cy="${CY}" r="${R_HOUSE}"/>`;
+
+  const ascIdx = toSignDeg(ASC).idx;
+  for(let i=0;i<12;i++){
+    const a0 = i*30 - 90, rad0 = a0*Math.PI/180;
+    svg += `<line class="wheel-spoke" x1="${CX+Math.cos(rad0)*R_ZODIAC}" y1="${CY+Math.sin(rad0)*R_ZODIAC}" x2="${CX+Math.cos(rad0)*R_OUTER}" y2="${CY+Math.sin(rad0)*R_OUTER}"/>`;
+    const aMid = (i*30+15)-90, radMid=aMid*Math.PI/180;
+    svg += `<text class="sign-glyph" x="${CX+Math.cos(radMid)*((R_OUTER+R_ZODIAC)/2)}" y="${CY+Math.sin(radMid)*((R_OUTER+R_ZODIAC)/2)}">${SIGN_GLYPH[SIGNS[i]]}</text>`;
+    const houseNum = ((i-ascIdx+12)%12)+1;
+    svg += `<text class="house-num" x="${CX+Math.cos(radMid)*((R_ZODIAC+R_HOUSE)/2)}" y="${CY+Math.sin(radMid)*((R_ZODIAC+R_HOUSE)/2)+3}">${houseNum}</text>`;
+  }
+
+  [{lon:ASC,label:'ASC'},{lon:MC,label:'MC'}].forEach(pt=>{
+    const edge = polar(pt.lon, R_HOUSE), out = polar(pt.lon, R_OUTER+14);
+    svg += `<line x1="${edge.x}" y1="${edge.y}" x2="${out.x}" y2="${out.y}" stroke="#D9A94E" stroke-width="1.3" stroke-dasharray="2 3" opacity="0.7"/>`;
+    svg += `<text x="${out.x}" y="${out.y}" font-family="IBM Plex Mono, monospace" font-size="10" fill="#D9A94E" text-anchor="middle">${pt.label}</text>`;
+  });
+
+  NATAL_POINTS.forEach(p=>{
+    const pos = polar(p.lon, R_POINT);
+    const isSel = p.id === selectedId;
+    svg += `<g class="point-dot ${isSel?'selected':''}" data-id="${p.id}">
+      <circle cx="${pos.x}" cy="${pos.y}" r="13" fill="#0D0D12" stroke="${p.color}" stroke-width="${isSel?3:1.6}"/>
+      <text class="point-label" x="${pos.x}" y="${pos.y+0.5}" font-size="11" fill="${p.color}">${p.glyph}</text>
+    </g>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById('wheelHost').innerHTML = svg;
+  document.querySelectorAll('.point-dot').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      selectedId = el.getAttribute('data-id');
+      renderWheel();
+      renderPointDetail(selectedId);
+      highlightQuickItem(selectedId);
+    });
+  });
+
+  document.getElementById('legendRow').innerHTML = NATAL_POINTS.map(p=>
+    `<span><span class="dot" style="background:${p.color}"></span>${p.id}</span>`
+  ).join('');
+}
+
+function renderQuickList(){
+  const host = document.getElementById('quickList');
+  host.innerHTML = NATAL_POINTS.map(p=>{
+    const s = toSignDeg(p.lon);
+    return `<div class="quick-item" data-id="${p.id}">
+      <span class="quick-glyph" style="color:${p.color};">${p.glyph}</span>
+      <span class="quick-name">${p.id}</span>
+      <span class="quick-pos">${s.sign} ${s.deg}°${String(s.min).padStart(2,'0')}'</span>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.quick-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      selectedId = el.getAttribute('data-id');
+      renderWheel();
+      renderPointDetail(selectedId);
+      highlightQuickItem(selectedId);
+    });
+  });
+}
+function highlightQuickItem(id){
+  document.querySelectorAll('.quick-item').forEach(el=>{
+    el.classList.toggle('active', el.getAttribute('data-id')===id);
+  });
+}
+
+/* ---------------- point detail ---------------- */
+function renderPointDetail(id){
+  const body = document.getElementById('detailBody');
+  const point = NATAL_POINTS.find(p=>p.id===id);
+  if(!point){ body.className='detail-empty'; body.innerHTML='Tap any point on the wheel or in the list to read its full profile.'; return; }
+  body.className = '';
+  const s = toSignDeg(point.lon);
+  const houseNum = houseOf(point.lon);
+  const prof = SIGN_PROFILE[s.sign];
+  const ruler = rulersFor(rulerSystem)[s.sign];
+  const rulerPoint = NATAL_POINTS.find(p=>p.id===ruler);
+  const quadrant = HOUSE_QUADRANT[houseNum];
+
+  let dignityHtml = '';
+  if(showsDignity(point.id, rulerSystem)){
+    const dignity = dignityOf(point.id, s.sign, rulerSystem);
+    const modernOnlyNote = ['Uranus','Neptune','Pluto'].includes(point.id)
+      ? `<p style="font-size:11.5px; color:var(--text-faint); margin-top:6px;">Modern rulership only, no classical dignity table covers ${point.id}. Only domicile applies here, there's no real consensus placement for exaltation, detriment, or fall for the outer planets.</p>`
+      : '';
+    dignityHtml = `<div class="detail-section"><h3>Essential dignity</h3>
+      <div class="condition-box">
+        <span class="badge ${dignity==='domicile'||dignity==='exaltation'?'regard':(dignity==='detriment'||dignity==='fall'?'aversion':'')}" style="${dignity==='peregrine'?'background:var(--input-bg);color:var(--text-dim);border:1px solid var(--border);':''}">${dignity}</span>
+        <p style="font-size:13px; color:var(--text-dim); margin:0;">${point.id} in ${s.sign} is ${DIGNITY_BLURB[dignity]}.</p>
+        ${modernOnlyNote}
+      </div>
+    </div>`;
+  }
+
+  let rulerHtml = '';
+  if(ruler !== point.id){
+    const rulerSign = rulerPoint ? toSignDeg(rulerPoint.lon).sign : null;
+    const averted = rulerPoint ? isAversion(point.lon, rulerPoint.lon) : null;
+    rulerHtml = `<div class="detail-section"><h3>Where this leads next</h3>
+      <p>Under ${rulerSystem} rulership, ${s.sign} is ruled by <b style="color:var(--gold);">${ruler}</b>${rulerPoint ? `, which sits in ${rulerSign} in your ${ordinal(houseOf(rulerPoint.lon))} house` : ''}. ${rulerPoint ? `That means ${point.id}'s deeper story is bound up with ${ruler}'s own condition, trace the full chain on the <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>.` : `${ruler} isn't separately plotted on this chart.`}
+      ${averted !== null ? (averted ? ` Notably, ${ruler} is averted from ${point.id}, it can't directly "see" or easily support this placement.` : ` ${ruler} is in regard with ${point.id}, it can actively lend support here.`) : ''}</p>
+    </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${point.color}; border-color:${point.color};">${point.glyph}</div>
+      <div>
+        <div class="detail-title">${point.id} <span class="accent">in ${s.sign} ${s.deg}°${String(s.min).padStart(2,'0')}'</span></div>
+        <div class="detail-tag">House ${houseNum} · ${quadrant}${point.retro ? ' · Retrograde' : ''}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>What it governs</h3>
+      <p>${point.id} governs ${PLANET_DOMAIN[point.id] || 'a distinct part of the chart'}.</p>
+    </div>
+    <div class="detail-section">
+      <h3>How it expresses in ${s.sign}</h3>
+      <p>${s.sign} is a ${prof.modality.toLowerCase()} ${prof.element.toLowerCase()} sign: ${prof.core}. Since ${SIGN_KEYWORDS[s.sign]}, expect ${point.id.toLowerCase()}'s themes to run through that register specifically before anything else touches them.</p>
+    </div>
+    <div class="detail-section">
+      <h3>Where it lands, house ${houseNum}</h3>
+      <p>${HOUSE_MEANINGS[houseNum]}. ${QUADRANT_TEXT[quadrant]} Concretely, that's most likely to show up through ${HOUSE_CONCRETE[houseNum]}.</p>
+    </div>
+    ${dignityHtml}
+    ${rulerHtml}
+  `;
+  document.getElementById('detailBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------------- chart-wide synthesis ---------------- */
+function renderSynthesis(){
+  const planetsOnly = NATAL_POINTS.filter(p=>['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'].includes(p.id));
+  const elementCount = {Fire:0,Earth:0,Air:0,Water:0};
+  const modalityCount = {Cardinal:0,Fixed:0,Mutable:0};
+  planetsOnly.forEach(p=>{
+    const sign = toSignDeg(p.lon).sign;
+    elementCount[SIGN_PROFILE[sign].element]++;
+    modalityCount[SIGN_PROFILE[sign].modality]++;
+  });
+  const hemisphereCount = {upper:0, lower:0, east:0, west:0};
+  planetsOnly.forEach(p=>{
+    const h = houseOf(p.lon);
+    if([10,11,12,1,2,3].includes(h)) hemisphereCount.upper++; else hemisphereCount.lower++;
+    if([1,2,3,4,5,6].includes(h)) hemisphereCount.east++; else hemisphereCount.west++;
+  });
+  const dominantElement = Object.keys(elementCount).reduce((a,b)=>elementCount[a]>=elementCount[b]?a:b);
+  const dominantModality = Object.keys(modalityCount).reduce((a,b)=>modalityCount[a]>=modalityCount[b]?a:b);
+  const colors = {Fire:'#D97757',Earth:'#9FBF9F',Air:'#7FB3D9',Water:'#B7BEE0'};
+
+  const dispSummary = computeDispositorSummary(rulerSystem);
+  let finalDispValue, finalDispNote;
+  if(dispSummary.finalDispositors.length === 1){
+    finalDispValue = dispSummary.finalDispositors[0];
+    finalDispNote = `Every planet's dispositor chain converges here under ${rulerSystem} rulership, see the <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>.`;
+  } else if(dispSummary.finalDispositors.length > 1){
+    finalDispValue = dispSummary.finalDispositors.join(' & ');
+    finalDispNote = `The chart splits into ${dispSummary.finalDispositors.length} independent final dispositors under ${rulerSystem} rulership, see the <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>.`;
+  } else if(dispSummary.mutualReceptionGroups.length){
+    finalDispValue = dispSummary.mutualReceptionGroups.map(g=>g.join(' ↔ ')).join(', ');
+    finalDispNote = `No single final dispositor under ${rulerSystem} rulership, the chain resolves in mutual reception instead, see the <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>.`;
+  } else {
+    finalDispValue = 'Unresolved';
+    finalDispNote = `The chain didn't resolve to a root under ${rulerSystem} rulership.`;
+  }
+
+  const barsHtml = Object.keys(elementCount).map(el=>`
+    <div class="bar-row"><span style="width:38px;">${el}</span><div class="bar-track"><div class="bar-fill" style="width:${(elementCount[el]/planetsOnly.length*100)}%; background:${colors[el]};"></div></div><span>${elementCount[el]}</span></div>
+  `).join('');
+  const modBarsHtml = Object.keys(modalityCount).map(m=>`
+    <div class="bar-row"><span style="width:60px;">${m}</span><div class="bar-track"><div class="bar-fill" style="width:${(modalityCount[m]/planetsOnly.length*100)}%; background:var(--gold);"></div></div><span>${modalityCount[m]}</span></div>
+  `).join('');
+
+  document.getElementById('synthBody').innerHTML = `
+    <div class="synth-grid">
+      <div class="synth-card">
+        <div class="sname">Element balance</div>
+        <div class="sval">${dominantElement}-heavy</div>
+        ${barsHtml}
+      </div>
+      <div class="synth-card">
+        <div class="sname">Modality balance</div>
+        <div class="sval">${dominantModality}-heavy</div>
+        ${modBarsHtml}
+      </div>
+      <div class="synth-card">
+        <div class="sname">Hemisphere emphasis</div>
+        <div class="sval">${hemisphereCount.upper >= hemisphereCount.lower ? 'Public / outward' : 'Private / inward'}</div>
+        <p style="font-size:11.5px; color:var(--text-dim); margin-top:6px; line-height:1.5;">${hemisphereCount.upper} planets above the horizon (houses 10–3), ${hemisphereCount.lower} below (houses 4–9).</p>
+      </div>
+      <div class="synth-card">
+        <div class="sname">Final dispositor <span style="text-transform:none; letter-spacing:0;">(${rulerSystem})</span></div>
+        <div class="sval" style="color:var(--gold);">${finalDispValue}</div>
+        <p style="font-size:11.5px; color:var(--text-dim); margin-top:6px; line-height:1.5;">${finalDispNote}</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; line-height:1.8; color:var(--text); margin-top:16px;">With ${elementCount[dominantElement]} of 10 planets in ${dominantElement.toLowerCase()} signs, this chart leans ${dominantElement === 'Air' ? 'toward ideas, exchange, and mental processing over raw feeling or action' : dominantElement === 'Water' ? 'toward emotional depth and instinct over logic or direct action' : dominantElement === 'Earth' ? 'toward tangible results and material follow-through over abstraction' : 'toward initiative and direct action over deliberation'}. Combined with a ${dominantModality.toLowerCase()} emphasis (${modalityCount[dominantModality]} of 10), the overall operating style is ${dominantModality === 'Cardinal' ? 'initiating, comfortable starting things, less naturally inclined to finish what it starts' : dominantModality === 'Fixed' ? 'sustaining, slow to start, very hard to move once committed' : 'adaptive, responsive to circumstance, sometimes at the cost of follow-through'}.</p>
+  `;
+}
+
+/* ---------------- current transits (anchored to real ephemeris, Aug 8 2026 00:00 UTC) ---------------- */
+const TRANSIT_ANCHOR_DATE = 'August 8, 2026 (00:00 UTC)';
+const TRANSIT_NOW = {
+  Sun:138, Moon:67, Mercury:119, Venus:180, Mars:87,
+  Jupiter:130, Saturn:14, Uranus:62, Neptune:4, Pluto:307
+};
+const TRANSIT_RETROGRADE = ['Saturn','Neptune','Pluto'];
+const TRANSIT_ASPECTS = [
+  {name:'Conjunction', angle:0, orb:6, color:'var(--gold)'},
+  {name:'Sextile', angle:60, orb:4, color:'var(--teal)'},
+  {name:'Square', angle:90, orb:6, color:'#E08585'},
+  {name:'Trine', angle:120, orb:6, color:'#8FBF8F'},
+  {name:'Opposition', angle:180, orb:6, color:'var(--sky)'}
+];
+function sep(a,b){ let d=Math.abs(a-b)%360; return d>180?360-d:d; }
+
+let transitResults = [];
+function computeTransits(){
+  const natalPlanets = NATAL_POINTS.filter(p=>['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'].includes(p.id));
+  transitResults = [];
+  Object.keys(TRANSIT_NOW).forEach(tp=>{
+    natalPlanets.forEach(np=>{
+      const d = sep(TRANSIT_NOW[tp], np.lon);
+      let best=null, bestOrb=999;
+      TRANSIT_ASPECTS.forEach(a=>{
+        const diff = Math.abs(d-a.angle);
+        if(diff<=a.orb && diff<bestOrb){ best=a; bestOrb=diff; }
+      });
+      if(best){
+        transitResults.push({ transiting:tp, natal:np.id, aspect:best, orb:bestOrb });
+      }
+    });
+  });
+  transitResults.sort((a,b)=>a.orb-b.orb);
+}
+
+function renderTransits(){
+  computeTransits();
+  document.getElementById('transitHint').innerHTML = `Anchored to real ephemeris data for <b style="color:var(--text-dim);">${TRANSIT_ANCHOR_DATE}</b>, this is a snapshot, not a live feed, so it will drift out of date. ${TRANSIT_RETROGRADE.join(', ')} are retrograde as of this anchor. Ask to have this refreshed periodically for continued accuracy.`;
+  document.getElementById('transitList').innerHTML = transitResults.map((t,i)=>{
+    const orbDeg = Math.floor(t.orb), orbMin = Math.round((t.orb-orbDeg)*60);
+    return `<div class="transit-item" data-idx="${i}">
+      <div class="tleft">Transiting <b>${t.transiting}</b> ${t.aspect.name} natal <b>${t.natal}</b></div>
+      <div class="torb">${orbDeg}°${orbMin}' orb</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.transit-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const idx = parseInt(el.getAttribute('data-idx'));
+      renderTransitDetail(transitResults[idx]);
+    });
+  });
+}
+
+function renderTransitDetail(t){
+  const body = document.getElementById('transitDetailBody');
+  body.className = '';
+  const orbDeg = Math.floor(t.orb), orbMin = Math.round((t.orb-orbDeg)*60);
+  const isRetro = TRANSIT_RETROGRADE.includes(t.transiting);
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${t.aspect.color}; border-color:${t.aspect.color};">${t.transiting[0]}${t.aspect.name[0]}${t.natal[0]}</div>
+      <div>
+        <div class="detail-title">Transiting ${t.transiting} <span class="accent" style="color:${t.aspect.color};">${t.aspect.name}</span> natal ${t.natal}</div>
+        <div class="detail-tag">Orb ${orbDeg}°${orbMin}' · as of ${TRANSIT_ANCHOR_DATE}${isRetro?' · transiting planet retrograde':''}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>What's happening</h3>
+      <p>Transiting ${t.transiting}, currently governing ${PLANET_DOMAIN[t.transiting]} out in the world, is forming a ${t.aspect.name.toLowerCase()} to your natal ${t.natal}, which governs ${PLANET_DOMAIN[t.natal]}. ${t.aspect.angle===0 ? "A conjunction means the transiting planet's themes are temporarily fusing with this natal placement, expect its energy to feel unusually active right now." : t.aspect.angle===90 ? "A square means friction, something is pushing against this natal placement in a way that's likely to feel like pressure or a forcing function." : t.aspect.angle===180 ? "An opposition means polarity, this is likely to show up as an external situation or person that puts this natal placement in sharp relief." : t.aspect.angle===120 ? "A trine means ease, this transit is likely to support this natal placement smoothly, sometimes so smoothly it goes unnoticed." : "A sextile means opportunity that requires a little initiative, the support is available but doesn't activate on its own."}</p>
+      ${isRetro ? `<p style="margin-top:10px;">${t.transiting} is retrograde right now, which traditionally suggests this theme is more about revisiting, reviewing, or internally processing than initiating something new.</p>` : ''}
+    </div>
+    <div class="detail-section">
+      <h3>A note on precision</h3>
+      <p>This is computed from a real verified planetary snapshot (not guessed), but it's a single point in time, the exact orb will keep shifting day to day. Treat this as "this is active right now," not a precise start/end date for the transit's influence.</p>
+    </div>
+  `;
+  document.getElementById('transitDetailBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------------- rulership toggle ---------------- */
+let rulerSystem = 'modern';
+function refreshForRulerChange(){
+  renderSynthesis();
+  if(selectedId) renderPointDetail(selectedId);
+}
+document.getElementById('btnModern').addEventListener('click', ()=>{
+  rulerSystem = 'modern';
+  document.getElementById('btnModern').classList.add('active');
+  document.getElementById('btnTrad').classList.remove('active');
+  refreshForRulerChange();
+});
+document.getElementById('btnTrad').addEventListener('click', ()=>{
+  rulerSystem = 'traditional';
+  document.getElementById('btnTrad').classList.add('active');
+  document.getElementById('btnModern').classList.remove('active');
+  refreshForRulerChange();
+});
+
+/* ---------------- chart source note ---------------- */
+function renderChartSourceNote(){
+  const el = document.getElementById('chartSourceNote');
+  if(SHARED){
+    el.innerHTML = `Showing <b>${SHARED.name || 'your saved chart'}</b>, entered on <a href="birth-data.html">Birth Data</a>.`;
+  } else {
+    el.innerHTML = `Showing this dashboard's built-in reference chart, no chart saved yet, enter yours on <a href="birth-data.html">Birth Data</a>.`;
+  }
+}
+
+/* ---------------- init ---------------- */
+renderChartSourceNote();
+renderWheel();
+renderQuickList();
+renderSynthesis();
+renderTransits();
+</script>
+</body>
+</html>
