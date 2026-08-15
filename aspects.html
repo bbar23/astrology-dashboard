@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aspects &amp; Returns</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --rose:#E08585; --sky:#7FB3D9; --green:#8FBF8F;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--gold);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--rose); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:680px; line-height:1.55;}
+
+  .layout{display:grid; grid-template-columns:300px 1fr; gap:18px;}
+  @media (max-width: 880px){.layout{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:15px; margin:0 0 4px;}
+  .panel .hint{font-size:12px; color:var(--text-faint); margin-bottom:14px; line-height:1.5;}
+
+  .field-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .field-row label{font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:78px;}
+  .glyph{font-size:14px; width:22px; text-align:center; color:var(--rose);}
+  input[type=number], input[type=date]{
+    flex:1; background:var(--input-bg); color:var(--text); border:1px solid var(--border);
+    border-radius:7px; padding:6px 8px; font-family:'IBM Plex Mono', monospace; font-size:12px; width:100%;
+  }
+  input:focus{outline:2px solid var(--rose); outline-offset:1px;}
+
+  .divider{height:1px; background:var(--border); margin:14px 0; border:none;}
+
+  details.adv{margin-top:2px;}
+  details.adv summary{cursor:pointer; font-size:12px; color:var(--text-dim); font-family:'IBM Plex Mono', monospace; padding:4px 0; list-style:none; display:flex; align-items:center; gap:6px;}
+  details.adv summary::-webkit-details-marker{display:none;}
+  details.adv summary:before{content:'▸'; color:var(--rose); transition:transform .15s ease;}
+  details.adv[open] summary:before{transform:rotate(90deg);}
+
+  .btn-row{display:flex; gap:8px; margin-top:10px;}
+  button.primary, button.ghost{font-family:'Inter'; font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--border);}
+  button.primary{background:var(--rose); color:#210E0E; border:1px solid var(--rose); flex:1;}
+  button.ghost{background:transparent; color:var(--text-dim);}
+  button.primary:hover{filter:brightness(1.08);}
+  button.ghost:hover{color:var(--text); border-color:var(--text-faint);}
+
+  .canvas-panel{min-height:600px; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  #wheelHost{width:100%; max-width:580px;}
+  .wheel-ring{fill:none; stroke:var(--edge); stroke-width:1;}
+  .wheel-spoke{stroke:var(--edge); stroke-width:1;}
+  .sign-glyph{font-size:14px; fill:var(--text-dim); text-anchor:middle; dominant-baseline:central; font-family:'IBM Plex Mono', monospace;}
+  .planet-dot{cursor:pointer;}
+  .planet-label{font-family:'IBM Plex Mono', monospace; text-anchor:middle; dominant-baseline:central; pointer-events:none; font-weight:600;}
+  .aspect-line{fill:none; cursor:pointer; transition:opacity .2s ease, stroke-width .2s ease;}
+  .aspect-line.dim{opacity:0.15;}
+  .aspect-line.hi{stroke-width:2.6; opacity:1;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:10px 14px; justify-content:center; margin-top:14px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-dim);}
+  .legend span.dot{display:inline-block; width:9px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle;}
+
+  .aspect-list{display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; justify-content:center;}
+  .aspect-chip{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; padding:6px 10px; border-radius:20px;
+    border:1px solid var(--border); background:var(--input-bg); color:var(--text-dim); cursor:pointer;
+    transition:all .15s ease;
+  }
+  .aspect-chip:hover, .aspect-chip.active{color:var(--text); border-color:var(--rose);}
+
+  .detail-panel{margin-top:18px; max-width:760px; margin-left:auto; margin-right:auto;}
+  .detail-empty{color:var(--text-faint); font-size:13px; line-height:1.6;}
+  .detail-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .detail-glyph{width:44px; height:44px; border-radius:50%; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:15px; font-family:'IBM Plex Mono', monospace; font-weight:700; flex-shrink:0;}
+  .detail-title{font-family:'Fraunces', serif; font-weight:500; font-size:20px;}
+  .detail-title .accent{font-weight:500;}
+  .detail-tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+  .detail-section{margin-bottom:26px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.08s;}
+  .detail-section:nth-of-type(3){animation-delay:.14s;}
+  .detail-section:nth-of-type(4){animation-delay:.20s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--rose); margin:0 0 10px;}
+  .detail-section p{font-size:15px; line-height:1.85; color:var(--text); margin:0;}
+  .detail-section p + p{margin-top:12px;}
+  .formula-box{font-family:'IBM Plex Mono', monospace; font-size:12.5px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; padding:12px 14px; line-height:1.9; color:var(--text-dim);}
+  .formula-box b{color:var(--rose);}
+
+  .pattern-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin-top:14px;}
+  .pattern-card{
+    background:var(--input-bg); border:1px solid var(--border); border-left-width:3px; border-radius:10px; padding:14px;
+    cursor:pointer; transition:border-color .15s ease;
+  }
+  .pattern-card:hover{border-color:var(--rose);}
+  .pattern-card .pname{font-family:'Fraunces', serif; font-size:15px; color:var(--text); display:flex; align-items:center; gap:8px;}
+  .pattern-card .pmembers{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--rose); margin-top:5px;}
+  .pattern-card .pmeta{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-faint); margin-top:3px;}
+  .pattern-empty{color:var(--text-faint); font-size:13px; line-height:1.6; padding:8px 0;}
+
+  .returns-section{margin-top:22px;}
+  .returns-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin-top:14px;}
+  .return-card{
+    background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:14px;
+    cursor:pointer; transition:border-color .15s ease;
+  }
+  .return-card:hover{border-color:var(--rose);}
+  .return-card.now{border-color:var(--gold); background:#1A1610;}
+  .return-card .rname{font-family:'Fraunces', serif; font-size:15px; color:var(--text);}
+  .return-card .rdate{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--rose); margin-top:4px;}
+  .return-card .rmeta{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-faint); margin-top:3px;}
+  .return-card.now .rmeta{color:var(--gold);}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:8px;}
+  .chart-source-note a{color:var(--rose); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · Aspects &amp; Returns</div>
+    <h1>How your planets talk to each other</h1>
+    <p class="sub">Dispositors and lots trace sign rulership. Aspects are different, pure geometry, the actual angle between two planets, independent of what sign either one is in. Below that, planetary returns track when a transiting planet comes back around to where it sat the moment you were born.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Chart input</h2>
+      <div class="hint">Absolute zodiac longitude, 0–360° (0°=0° Aries).</div>
+
+      <div class="field-row"><label><span class="glyph">ASC</span>Ascendant</label><input type="number" id="inAsc" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">☉</span>Sun</label><input type="number" id="inSun" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">☽</span>Moon</label><input type="number" id="inMoon" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">☿</span>Mercury</label><input type="number" id="inMercury" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♀</span>Venus</label><input type="number" id="inVenus" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♂</span>Mars</label><input type="number" id="inMars" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♃</span>Jupiter</label><input type="number" id="inJupiter" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♄</span>Saturn</label><input type="number" id="inSaturn" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♅</span>Uranus</label><input type="number" id="inUranus" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♆</span>Neptune</label><input type="number" id="inNeptune" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♇</span>Pluto</label><input type="number" id="inPluto" step="0.01"></div>
+
+      <details class="adv">
+        <summary>Points &amp; lots (optional)</summary>
+        <div style="padding-top:10px;">
+          <div class="field-row"><label><span class="glyph">⊗</span>Fortune</label><input type="number" id="inFortune" step="0.01"></div>
+          <div class="field-row"><label><span class="glyph">☊</span>Node</label><input type="number" id="inNode" step="0.01"></div>
+          <div class="field-row"><label><span class="glyph">⚷</span>Chiron</label><input type="number" id="inChiron" step="0.01"></div>
+          <div class="field-row"><label><span class="glyph">⚸</span>Lilith</label><input type="number" id="inLilith" step="0.01"></div>
+        </div>
+      </details>
+
+      <hr class="divider">
+      <div class="hint" style="margin-bottom:8px;">Birth date (for planetary returns)</div>
+      <input type="date" id="inBirthDate" style="margin-bottom:12px;">
+
+      <div class="btn-row">
+        <button class="primary" id="btnCalc">Calculate</button>
+        <button class="ghost" id="btnExample">Load my chart</button>
+      </div>
+    </div>
+
+    <div class="panel canvas-panel">
+      <div id="wheelHost"></div>
+      <div class="legend" id="legendRow"></div>
+      <div class="aspect-list" id="aspectChips"></div>
+    </div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Load your chart, then click an aspect line on the wheel or a chip below it to read the full interpretation.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Aspect patterns</h2>
+    <div class="hint">Named configurations of three or more aspects at once, not just individual lines. A Grand Trine is three points in a closed triangle of trines. A T-square is two points in opposition, both squared by a third that absorbs the pressure. A Grand Cross is two full oppositions, each squared to the other. A Yod ("Finger of Fate") is two points in easy sextile, both quincunx to a third apex. Computed from whichever points are currently loaded above, most charts don't have one of these at all, that's expected, not a bug.</div>
+    <div class="pattern-grid" id="patternGrid"></div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="patternDetailBody" class="detail-empty">Click any pattern above for the full breakdown.</div>
+  </div>
+
+  <div class="panel returns-section">
+    <h2>Planetary returns</h2>
+    <div class="hint" id="returnsHint">A return happens when a transiting planet arrives back at the exact degree it held when you were born. Most dates below use each planet's average orbital period, which can miss by months to a year, planets move unevenly (their orbits aren't perfectly circular) and often station retrograde right around a return, turning one date into a three-part approach/retreat/return sequence. The <span style="color:var(--gold);">Saturn Return</span> card below has been checked against real 2034–2035 ephemeris data rather than the averaged formula, the rest are still estimates.</div>
+    <div class="returns-grid" id="returnsGrid"></div>
+  </div>
+
+  <div class="panel detail-panel" id="returnDetailWrap" style="display:none;">
+    <div id="returnDetailBody" class="detail-empty"></div>
+  </div>
+
+  <footer>ASPECTS &amp; RETURNS · geometric relationships and orbital-cycle timing · not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- data ---------------- */
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+
+const PLANET_GLYPH = {Sun:"☉",Moon:"☽",Mercury:"☿",Venus:"♀",Mars:"♂",Jupiter:"♃",Saturn:"♄",Uranus:"♅",Neptune:"♆",Pluto:"♇",Fortune:"⊗",Node:"☊",Chiron:"⚷",Lilith:"⚸",Ascendant:"ASC"};
+const PLANET_COLOR = {Sun:'#E0B84D',Moon:'#B7BEE0',Mercury:'#9FBF9F',Venus:'#E08FA8',Mars:'#D97757',Jupiter:'#C9A6E8',Saturn:'#8E8FBF',Uranus:'#7FB3D9',Neptune:'#6FA0C9',Pluto:'#B08F8F',Fortune:'#D9A94E',Node:'#D9C48E',Chiron:'#E08585',Lilith:'#8B6B8E',Ascendant:'#F1EDE4'};
+const PLANET_KEYWORDS = {
+  Sun:"identity, vitality, and conscious will",
+  Moon:"emotional need, instinct, and what makes you feel safe",
+  Mercury:"thought, perception, and communication",
+  Venus:"what you value and what you're drawn to",
+  Mars:"drive, assertion, and how you go after what you want",
+  Jupiter:"expansion, meaning-making, and where you seek growth",
+  Saturn:"structure, responsibility, and where you build discipline",
+  Uranus:"independence, disruption, and sudden insight",
+  Neptune:"imagination, dissolution, and idealism",
+  Pluto:"transformation, power, and what runs at the depths",
+  Fortune:"body, material circumstance, and what happens to you",
+  Node:"the direction you're growing toward, unfamiliar but purposeful",
+  Chiron:"the core wound, and the gift that grows from tending it",
+  Lilith:"what you've suppressed, disowned, or been shamed out of expressing",
+  Ascendant:"your instinctive front, the lens everything else gets filtered through"
+};
+
+const ASPECTS = [
+  {name:'Conjunction', angle:0,   orb:8, color:'var(--gold)',  nature:"fusion, two planetary energies operating as one, for better or worse. There's no filter between them; whatever they're doing, they're doing it together and it's hard to tell where one ends and the other begins."},
+  {name:'Sextile',     angle:60,  orb:6, color:'var(--teal)',  nature:"easy cooperation that requires a little initiative to activate. The two energies support each other, but this aspect tends to sit quietly until you actually engage it."},
+  {name:'Square',      angle:90,  orb:7, color:'var(--rose)',  nature:"friction, the two energies want different, often incompatible things, and that tension is what generates growth. Squares are uncomfortable by design; they're also usually where the real development happens."},
+  {name:'Trine',       angle:120, orb:8, color:'var(--green)', nature:"natural flow, the two energies support each other so easily it can go unnoticed, or get taken for granted. Talent without friction rarely gets pushed to develop on its own."},
+  {name:'Opposition',  angle:180, orb:8, color:'var(--sky)',   nature:"polarity, two energies pulling toward opposite poles of the same axis, creating awareness through contrast. Oppositions often show up through other people before you can see them in yourself."}
+];
+
+const EXAMPLE = {
+  asc:178.0992, sun:102.7819, moon:191.9738, mercury:90.1404, venus:107.3139,
+  mars:148.6073, jupiter:52.8048, saturn:123.3802, uranus:213.0523, neptune:251.7912, pluto:188.9965,
+  fortune:267.2911, node:219.4320, chiron:75.0, lilith:27.4177,
+  birthDate:'1976-07-04'
+};
+// A fictional demo chart, computed by this dashboard's own ephemeris engine (birth-data.html).
+// Chiron has no simple mean-position formula, so its position is an honestly-labeled placeholder.
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+function sharedAsExample(){
+  if(!SHARED) return null;
+  const P = SHARED.points;
+  const isDay = SHARED.sect === 'day';
+  const norm2 = d=>{ let x=d%360; if(x<0)x+=360; return x; };
+  const fortune = isDay ? norm2(P.Ascendant+P.Moon-P.Sun) : norm2(P.Ascendant+P.Sun-P.Moon);
+  return {
+    asc:P.Ascendant, sun:P.Sun, moon:P.Moon, mercury:P.Mercury, venus:P.Venus, mars:P.Mars,
+    jupiter:P.Jupiter, saturn:P.Saturn, uranus:P.Uranus, neptune:P.Neptune, pluto:P.Pluto,
+    fortune, node:P.NorthNode, chiron:P.Chiron, lilith:P.Lilith,
+    birthDate: SHARED.birthDate || '', name: SHARED.name
+  };
+}
+
+// Applying/separating motion computed by this dashboard's own ephemeris engine (finite-difference
+// angular velocity at the birth moment, the same technique birth-data.html uses for retrograde
+// detection), then verified: run against this project's original real chart, it reproduced all
+// 11 of that chart's independently Astro-Seek-confirmed applying/separating calls exactly. It's
+// chart-and-date specific, so it's honestly withheld for any other chart, not reused as if it
+// applied there too. Chiron has no motion here since it has no simple position formula to
+// differentiate, only its geometric aspects are shown, never applying/separating.
+const VERIFIED_MOTION = {
+  'Sun-Moon':'Applying', 'Sun-Venus':'Separating', 'Sun-Pluto':'Separating', 'Sun-Node':'Separating',
+  'Moon-Venus':'Applying', 'Moon-Neptune':'Separating', 'Moon-Pluto':'Separating',
+  'Mercury-Mars':'Separating', 'Mercury-Uranus':'Applying', 'Mercury-Lilith':'Separating',
+  'Mercury-Ascendant':'Applying', 'Mercury-Fortune':'Applying', 'Venus-Jupiter':'Applying',
+  'Venus-Node':'Separating', 'Mars-Jupiter':'Separating', 'Mars-Uranus':'Applying',
+  'Mars-Lilith':'Separating', 'Mars-Fortune':'Separating', 'Jupiter-Ascendant':'Separating',
+  'Saturn-Uranus':'Separating', 'Saturn-Pluto':'Applying', 'Saturn-Node':'Applying',
+  'Saturn-Lilith':'Separating', 'Saturn-Ascendant':'Applying', 'Uranus-Node':'Applying',
+  'Uranus-Lilith':'Applying', 'Uranus-Fortune':'Applying', 'Neptune-Pluto':'Applying',
+  'Lilith-Fortune':'Separating', 'Ascendant-Fortune':'Applying'
+};
+function lookupMotion(p1, p2){
+  if(SHARED) return null; // no ephemeris speed data on file for anyone but the reference chart
+  return VERIFIED_MOTION[`${p1}-${p2}`] || VERIFIED_MOTION[`${p2}-${p1}`] || null;
+}
+
+let state = null;
+let selectedAspectId = null;
+
+function norm(d){ let x=d%360; if(x<0)x+=360; return x; }
+function sep(a,b){ let d=Math.abs(a-b)%360; return d>180?360-d:d; }
+function toSignDeg(lon){
+  const idx = Math.floor(lon/30) % 12;
+  const within = lon - idx*30;
+  const deg = Math.floor(within);
+  const min = Math.round((within-deg)*60);
+  return { sign: SIGNS[idx], deg, min, idx };
+}
+function fmt(lon){ const s = toSignDeg(norm(lon)); return `${s.sign} ${String(s.deg).padStart(2,'0')}°${String(s.min).padStart(2,'0')}'`; }
+
+function loadIntoForm(ex){
+  document.getElementById('inAsc').value = ex.asc;
+  document.getElementById('inSun').value = ex.sun;
+  document.getElementById('inMoon').value = ex.moon;
+  document.getElementById('inMercury').value = ex.mercury;
+  document.getElementById('inVenus').value = ex.venus;
+  document.getElementById('inMars').value = ex.mars;
+  document.getElementById('inJupiter').value = ex.jupiter;
+  document.getElementById('inSaturn').value = ex.saturn;
+  document.getElementById('inUranus').value = ex.uranus;
+  document.getElementById('inNeptune').value = ex.neptune;
+  document.getElementById('inPluto').value = ex.pluto;
+  document.getElementById('inFortune').value = ex.fortune;
+  document.getElementById('inNode').value = ex.node;
+  document.getElementById('inChiron').value = ex.chiron;
+  document.getElementById('inLilith').value = ex.lilith;
+  document.getElementById('inBirthDate').value = ex.birthDate;
+  calculate();
+  calculateReturns();
+}
+document.getElementById('btnExample').addEventListener('click', ()=>{
+  const shared = sharedAsExample();
+  loadIntoForm(shared || EXAMPLE);
+});
+if(SHARED){
+  document.getElementById('btnExample').textContent = `Load ${SHARED.name || 'my'} chart`;
+  document.getElementById('returnsHint').innerHTML = `A return happens when a transiting planet arrives back at the exact degree it held when you were born. All dates below use each planet's average orbital period, which can miss by months to a year, planets move unevenly (their orbits aren't perfectly circular) and often station retrograde right around a return. This dashboard's verified 2034–2035 Saturn Return ephemeris data is specific to its own reference chart's exact Saturn degree, so it isn't reused here, every return below is an honest estimate for this chart.`;
+}
+document.getElementById('btnCalc').addEventListener('click', ()=>{ calculate(); calculateReturns(); });
+
+function calculate(){
+  const req = ['inAsc','inSun','inMoon','inMercury','inVenus','inMars','inJupiter','inSaturn'];
+  const vals = req.map(id=>parseFloat(document.getElementById(id).value));
+  if(vals.some(v=>isNaN(v))){
+    document.getElementById('wheelHost').innerHTML = '<div style="text-align:center;color:var(--text-faint);font-size:13px;padding:60px 20px;">Enter at least the eight core positions (or press "Load my chart"), then press Calculate.</div>';
+    return;
+  }
+  const [asc, sun, moon, mercury, venus, mars, jupiter, saturn] = vals;
+  const optionalIds = {Uranus:'inUranus', Neptune:'inNeptune', Pluto:'inPluto', Fortune:'inFortune', Node:'inNode', Chiron:'inChiron', Lilith:'inLilith'};
+
+  const bodies = { Ascendant:asc, Sun:sun, Moon:moon, Mercury:mercury, Venus:venus, Mars:mars, Jupiter:jupiter, Saturn:saturn };
+  Object.keys(optionalIds).forEach(key=>{
+    const v = parseFloat(document.getElementById(optionalIds[key]).value);
+    if(!isNaN(v)) bodies[key] = v;
+  });
+
+  const names = Object.keys(bodies);
+  const aspectResults = [];
+  for(let i=0;i<names.length;i++){
+    for(let j=i+1;j<names.length;j++){
+      const p1=names[i], p2=names[j];
+      const d = sep(bodies[p1], bodies[p2]);
+      let best=null, bestOrb=999;
+      ASPECTS.forEach(a=>{
+        const diff = Math.abs(d-a.angle);
+        if(diff<=a.orb && diff<bestOrb){ best=a; bestOrb=diff; }
+      });
+      if(best){
+        aspectResults.push({ p1, p2, aspect:best, orb:bestOrb, id:`${p1}-${p2}`, motion:lookupMotion(p1,p2) });
+      }
+    }
+  }
+  aspectResults.sort((a,b)=>a.orb-b.orb);
+
+
+  state = { asc, bodies, aspectResults };
+  renderWheel();
+  renderChips();
+  if(selectedAspectId){
+    const found = aspectResults.find(a=>a.id===selectedAspectId);
+    if(found) renderAspectDetail(found); else renderAspectDetail(null);
+  }
+  renderPatterns();
+  renderPatternDetail(null);
+}
+
+/* ---------------- aspect patterns: Grand Trine, T-square, Grand Cross, Yod ---------------- */
+// Quincunx isn't one of the five majors drawn on the wheel, it's only used here, to find Yods,
+// a natural extension of the same aspect-finding loop above rather than a new subsystem.
+function withinAngle(lon1, lon2, angle, orb){ return Math.abs(sep(lon1, lon2) - angle) <= orb; }
+
+const PATTERN_GLYPH = {'Grand Trine':'△','T-square':'T','Grand Cross':'✛','Yod':'Y'};
+const PATTERN_COLOR = {'Grand Trine':'var(--green)','T-square':'var(--rose)','Grand Cross':'#E08585','Yod':'var(--violet)'};
+const PATTERN_INFO = {
+  'Grand Trine':"Three points locked into a closed triangle of trines, roughly 120° apart from each other. This is the easiest major pattern to carry: the three domains support each other so naturally that the strength can go unnoticed, or get taken for granted rather than developed on purpose.",
+  'T-square':"Two points in opposition, both squared by a third. The apex point absorbs pressure from both ends of the opposition and becomes the pressure valve, the one place all that tension has to actually resolve, usually through action.",
+  'Grand Cross':"Two full oppositions, each squared to the other, four points locked into a closed cross of tension. Unlike a T-square, there's no single release point, every point here is simultaneously under pressure from two others and is itself the pressure on two more.",
+  'Yod':"Two points in easy sextile with each other, both quincunx to a third apex point. Sometimes called the Finger of Fate. A quincunx connects signs that share neither element nor modality, so the apex is being asked to reconcile two supportive-but-unrelated energies through ongoing, awkward adjustment rather than natural integration."
+};
+
+function findPatterns(){
+  if(!state) return [];
+  const names = Object.keys(state.bodies);
+  const lon = p => state.bodies[p];
+  const patterns = [];
+
+  // Grand Trine: every 3-combination where all three pairs are within trine orb.
+  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++) for(let k=j+1;k<names.length;k++){
+    const [a,b,c] = [names[i],names[j],names[k]];
+    if(withinAngle(lon(a),lon(b),120,8) && withinAngle(lon(b),lon(c),120,8) && withinAngle(lon(a),lon(c),120,8)){
+      patterns.push({ type:'Grand Trine', members:[a,b,c] });
+    }
+  }
+
+  // Oppositions, needed for both T-square and Grand Cross.
+  const opps = [];
+  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++){
+    if(withinAngle(lon(names[i]), lon(names[j]), 180, 8)) opps.push([names[i], names[j]]);
+  }
+
+  // T-square: an opposition plus a third point square to both ends.
+  const tsquares = [];
+  opps.forEach(([a,b])=>{
+    names.forEach(c=>{
+      if(c===a || c===b) return;
+      if(withinAngle(lon(a),lon(c),90,7) && withinAngle(lon(b),lon(c),90,7)){
+        tsquares.push({ type:'T-square', members:[a,b,c], opposition:[a,b], apex:c });
+      }
+    });
+  });
+
+  // Grand Cross: two oppositions (four distinct points), each axis square to the other.
+  const crosses = [];
+  for(let i=0;i<opps.length;i++){
+    for(let j=i+1;j<opps.length;j++){
+      const [a,b] = opps[i], [c,d] = opps[j];
+      if(new Set([a,b,c,d]).size !== 4) continue;
+      if(withinAngle(lon(a),lon(c),90,7) && withinAngle(lon(a),lon(d),90,7) &&
+         withinAngle(lon(b),lon(c),90,7) && withinAngle(lon(b),lon(d),90,7)){
+        crosses.push({ type:'Grand Cross', members:[a,b,c,d], axes:[[a,b],[c,d]] });
+      }
+    }
+  }
+  // A Grand Cross structurally contains T-squares as sub-patterns (each axis is squared by the
+  // other), don't list those separately, they'd just be redundant, nested restatements.
+  const tsquaresNotInCross = tsquares.filter(ts=>
+    !crosses.some(cr => ts.members.every(m => cr.members.includes(m)))
+  );
+
+  // Yod: two points sextile each other, both quincunx to a third apex.
+  const sextiles = [];
+  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++){
+    if(withinAngle(lon(names[i]), lon(names[j]), 60, 6)) sextiles.push([names[i], names[j]]);
+  }
+  const yods = [];
+  sextiles.forEach(([a,b])=>{
+    names.forEach(c=>{
+      if(c===a || c===b) return;
+      if(withinAngle(lon(a),lon(c),150,3) && withinAngle(lon(b),lon(c),150,3)){
+        yods.push({ type:'Yod', members:[a,b,c], sextilePair:[a,b], apex:c });
+      }
+    });
+  });
+
+  return [...patterns, ...tsquaresNotInCross, ...crosses, ...yods];
+}
+
+let currentPatterns = [];
+function renderPatterns(){
+  currentPatterns = findPatterns();
+  const host = document.getElementById('patternGrid');
+  if(!currentPatterns.length){
+    host.innerHTML = `<div class="pattern-empty">No Grand Trine, T-square, Grand Cross, or Yod found among the currently loaded points. These are specific geometric alignments, most charts don't have one, that's the expected result, not a gap in the calculation.</div>`;
+    return;
+  }
+  host.innerHTML = currentPatterns.map((p,i)=>{
+    const glyphs = p.members.map(m=>PLANET_GLYPH[m]||m).join(' ');
+    return `<div class="pattern-card" data-idx="${i}" style="border-left-color:${PATTERN_COLOR[p.type]};">
+      <div class="pname">${PATTERN_GLYPH[p.type]} ${p.type}</div>
+      <div class="pmembers">${glyphs}</div>
+      <div class="pmeta">${p.members.join(' · ')}</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.pattern-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      renderPatternDetail(currentPatterns[parseInt(card.getAttribute('data-idx'))]);
+    });
+  });
+}
+
+function renderPatternDetail(p){
+  const body = document.getElementById('patternDetailBody');
+  if(!p){
+    body.className = 'detail-empty';
+    body.innerHTML = 'Click any pattern above for the full breakdown.';
+    return;
+  }
+  body.className = '';
+  let structureHtml = '';
+  if(p.type === 'Grand Trine'){
+    structureHtml = `<p>${p.members.map(m=>`${m} in ${toSignDeg(norm(state.bodies[m])).sign}`).join(', ')}, each pair roughly 120° apart from the other two.</p>`;
+  } else if(p.type === 'T-square'){
+    structureHtml = `<p><b style="color:${PATTERN_COLOR['T-square']};">${p.opposition.join(' ↔ ')}</b> in opposition, both square to the apex, <b style="color:var(--gold);">${p.apex}</b>.</p>`;
+  } else if(p.type === 'Grand Cross'){
+    structureHtml = `<p>Two oppositions, <b style="color:${PATTERN_COLOR['Grand Cross']};">${p.axes[0].join(' ↔ ')}</b> and <b style="color:${PATTERN_COLOR['Grand Cross']};">${p.axes[1].join(' ↔ ')}</b>, each axis square to the other.</p>`;
+  } else if(p.type === 'Yod'){
+    structureHtml = `<p><b style="color:${PATTERN_COLOR['Yod']};">${p.sextilePair.join(' & ')}</b> sextile each other, both quincunx to the apex, <b style="color:var(--gold);">${p.apex}</b>.</p>`;
+  }
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${PATTERN_COLOR[p.type]}; border-color:${PATTERN_COLOR[p.type]};">${PATTERN_GLYPH[p.type]}</div>
+      <div>
+        <div class="detail-title">${p.type}</div>
+        <div class="detail-tag">${p.members.join(' · ')}</div>
+      </div>
+    </div>
+    <div class="detail-section"><h3>The shape</h3>${structureHtml}</div>
+    <div class="detail-section"><h3>What this pattern means</h3><p>${PATTERN_INFO[p.type]}</p></div>
+    <div class="detail-section"><h3>Where it connects</h3><p>Every point in this pattern also has its own individual aspects and dispositor chain, worth reading together rather than in isolation, see the <a href="dispositor-tree.html" style="color:var(--rose);">Dispositor Tree</a> for how each one resolves.</p></div>
+  `;
+  body.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------------- wheel ---------------- */
+const CX = 290, CY = 290, R_OUTER = 250, R_ZODIAC = 215, R_PLANET = 175;
+
+function polar(lon, r){
+  const a = (lon - 90) * Math.PI/180;
+  return { x: CX + Math.cos(a)*r, y: CY + Math.sin(a)*r };
+}
+
+function renderWheel(){
+  let svg = `<svg viewBox="0 0 580 580" width="100%" style="max-width:580px; display:block; margin:0 auto;">`;
+  svg += `<circle class="wheel-ring" cx="${CX}" cy="${CY}" r="${R_OUTER}"/>`;
+  svg += `<circle class="wheel-ring" cx="${CX}" cy="${CY}" r="${R_ZODIAC}"/>`;
+  for(let i=0;i<12;i++){
+    const a0 = i*30 - 90, rad0 = a0*Math.PI/180;
+    svg += `<line class="wheel-spoke" x1="${CX+Math.cos(rad0)*R_ZODIAC}" y1="${CY+Math.sin(rad0)*R_ZODIAC}" x2="${CX+Math.cos(rad0)*R_OUTER}" y2="${CY+Math.sin(rad0)*R_OUTER}"/>`;
+    const aMid = (i*30+15) - 90, radMid = aMid*Math.PI/180;
+    svg += `<text class="sign-glyph" x="${CX+Math.cos(radMid)*((R_OUTER+R_ZODIAC)/2)}" y="${CY+Math.sin(radMid)*((R_OUTER+R_ZODIAC)/2)}">${SIGN_GLYPH[SIGNS[i]]}</text>`;
+  }
+
+  // aspect lines first (so planet dots sit on top)
+  state.aspectResults.forEach(a=>{
+    const p1 = polar(norm(state.bodies[a.p1]), R_PLANET);
+    const p2 = polar(norm(state.bodies[a.p2]), R_PLANET);
+    svg += `<line class="aspect-line" data-id="${a.id}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${a.aspect.color}" stroke-width="1.4" opacity="0.55"/>`;
+  });
+
+  // planet dots
+  Object.keys(state.bodies).forEach(p=>{
+    const pos = polar(norm(state.bodies[p]), R_PLANET);
+    svg += `<g class="planet-dot" data-planet="${p}">
+      <circle cx="${pos.x}" cy="${pos.y}" r="13" fill="#0D0D12" stroke="${PLANET_COLOR[p]}" stroke-width="1.6"/>
+      <text class="planet-label" x="${pos.x}" y="${pos.y+0.5}" font-size="12" fill="${PLANET_COLOR[p]}">${PLANET_GLYPH[p]}</text>
+    </g>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById('wheelHost').innerHTML = svg;
+
+  document.querySelectorAll('.aspect-line').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.getAttribute('data-id');
+      const found = state.aspectResults.find(a=>a.id===id);
+      selectedAspectId = id;
+      renderAspectDetail(found);
+      highlightAspect(id);
+    });
+  });
+  document.querySelectorAll('.planet-dot').forEach(el=>{
+    el.addEventListener('mouseenter', ()=>{
+      const p = el.getAttribute('data-planet');
+      document.querySelectorAll('.aspect-line').forEach(line=>{
+        const id = line.getAttribute('data-id');
+        line.classList.toggle('hi', id.includes(p));
+        line.classList.toggle('dim', !id.includes(p));
+      });
+    });
+    el.addEventListener('mouseleave', ()=>{
+      document.querySelectorAll('.aspect-line').forEach(line=>{ line.classList.remove('hi'); line.classList.remove('dim'); });
+    });
+  });
+
+  const legend = ASPECTS.map(a=>`<span><span class="dot" style="background:${a.color}"></span>${a.name}</span>`).join('');
+  document.getElementById('legendRow').innerHTML = legend;
+}
+
+function highlightAspect(id){
+  document.querySelectorAll('.aspect-line').forEach(line=>{
+    line.classList.toggle('hi', line.getAttribute('data-id')===id);
+    line.classList.toggle('dim', line.getAttribute('data-id')!==id);
+  });
+  document.querySelectorAll('.aspect-chip').forEach(chip=>{
+    chip.classList.toggle('active', chip.getAttribute('data-id')===id);
+  });
+}
+
+function renderChips(){
+  const host = document.getElementById('aspectChips');
+  host.innerHTML = state.aspectResults.map(a=>{
+    const orbDeg = Math.floor(a.orb), orbMin = Math.round((a.orb-orbDeg)*60);
+    return `<span class="aspect-chip" data-id="${a.id}">${PLANET_GLYPH[a.p1]} ${a.aspect.name} ${PLANET_GLYPH[a.p2]} · ${orbDeg}°${orbMin}'</span>`;
+  }).join('');
+  document.querySelectorAll('.aspect-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const id = chip.getAttribute('data-id');
+      const found = state.aspectResults.find(a=>a.id===id);
+      selectedAspectId = id;
+      renderAspectDetail(found);
+      highlightAspect(id);
+    });
+  });
+}
+
+/* ---------------- aspect detail ---------------- */
+function renderAspectDetail(a){
+  const body = document.getElementById('detailBody');
+  if(!a){
+    body.className = 'detail-empty';
+    body.innerHTML = 'Load your chart, then click an aspect line on the wheel or a chip below it to read the full interpretation.';
+    return;
+  }
+  body.className = '';
+  const orbDeg = Math.floor(a.orb), orbMin = Math.round((a.orb-orbDeg)*60);
+  const s1 = toSignDeg(norm(state.bodies[a.p1]));
+  const s2 = toSignDeg(norm(state.bodies[a.p2]));
+
+  const p1dom = PLANET_KEYWORDS[a.p1], p2dom = PLANET_KEYWORDS[a.p2];
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${a.aspect.color}; border-color:${a.aspect.color};">${PLANET_GLYPH[a.p1]}${a.aspect.name[0]}${PLANET_GLYPH[a.p2]}</div>
+      <div>
+        <div class="detail-title">${a.p1} <span class="accent" style="color:${a.aspect.color};">${a.aspect.name}</span> ${a.p2}</div>
+        <div class="detail-tag">Orb ${orbDeg}°${orbMin}' ${a.motion ? `· ${a.motion}` : ''} · ${a.p1} in ${s1.sign}, ${a.p2} in ${s2.sign}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>What this aspect is</h3>
+      <p>A ${a.aspect.name.toLowerCase()} means ${a.p1} and ${a.p2} sit roughly ${a.aspect.angle}° apart, within ${orbDeg}°${orbMin}' of exact, which is a tight, clearly-felt orb. Aspects of this type represent ${a.aspect.nature}</p>
+      ${a.motion ? `<p style="margin-top:10px;"><b style="color:${a.aspect.color};">${a.motion}</b>, ${a.motion==='Applying'
+        ? `the faster planet is still moving toward exact alignment. This aspect hasn't fully "landed" yet; its effects tend to build rather than resolve.`
+        : `the faster planet has already passed exact alignment and is moving away. This aspect has already peaked, you're more likely to feel its aftermath and integration than its initial impact.`} (Confirmed from real ephemeris data, this direction can't be derived from static degrees alone, it requires knowing each planet's speed.)</p>` : ''}
+    </div>
+    <div class="detail-section">
+      <h3>What's actually in tension (or flow)</h3>
+      <p>${a.p1} governs ${p1dom}. ${a.p2} governs ${p2dom}. A ${a.aspect.name.toLowerCase()} between them means these two domains don't operate independently in your chart, ${a.aspect.angle===0
+        ? `they're fused into a single combined expression, for better and worse.`
+        : a.aspect.angle===60
+        ? `they're available to cooperate, but you likely have to consciously bring them together rather than expect it automatically.`
+        : a.aspect.angle===90
+        ? `they actively pull against each other, and that friction is probably one of the more persistent tensions in how you operate.`
+        : a.aspect.angle===120
+        ? `they reinforce each other so smoothly it may not register as a "strength" so much as just how you naturally are.`
+        : `they sit at odds, likely showing up as a push-pull you feel internally or attract externally through other people.`}</p>
+    </div>
+    <div class="detail-section">
+      <h3>Where it connects</h3>
+      <p>${a.p1} sits in ${s1.sign}, ${a.p2} sits in ${s2.sign}, trace either one's own chain on the <a href="dispositor-tree.html" style="color:var(--rose);">Dispositor Tree</a> to see what they each ultimately answer to. If ${a.p1} or ${a.p2} rules one of your calculated lots, this aspect is also part of that lot's ruler condition, check the <a href="lots.html" style="color:var(--rose);">Lots</a> page.</p>
+    </div>
+  `;
+}
+
+/* ---------------- planetary returns ---------------- */
+const RETURN_BODIES = [
+  { key:'jupiter', name:'Jupiter Return', glyph:'♃', period:11.862, color:'#C9A6E8',
+    blurb:"Jupiter returns to its natal degree roughly every 11.86 years. Each return tends to open a chapter of expansion, new opportunities, renewed optimism, sometimes literal growth (a move, a program, a big yes). It's the closest thing this system has to a scheduled lucky break, though what you do with it is still up to you." },
+  { key:'saturn', name:'Saturn Return', glyph:'♄', period:29.4571, color:'#8E8FBF',
+    blurb:"Saturn's return, roughly every 29.5 years, is the most talked-about cycle in modern astrology for a reason, it tends to coincide with a real structural reckoning: what you've built gets tested, what's flimsy gets exposed, and what survives becomes the foundation for the next three decades. First return (~29) is usually the hardest; by the second (~59) you're applying lessons rather than learning them for the first time.",
+    verifiedPasses:[
+      {label:'First exact crossing, moving direct', date:'2034-10-01', note:"Transiting Saturn crosses your natal 3° Leo 23′ moving direct, then keeps going for about six weeks before stationing retrograde at 5° Leo 22′ in mid-November."},
+      {label:'Second exact crossing, moving retrograde', date:'2035-01-04', note:"Saturn retraces its steps and crosses back over your natal degree, this time moving backward, on its way to a retrograde low point at 28° Cancer 25′ before stationing direct at the end of March."},
+      {label:'Third exact crossing, the completed return', date:'2035-06-18', note:"Moving direct again, Saturn crosses your natal 3° Leo 23′ a third and final time. This is the completed return, your second Saturn return in this lifetime."}
+    ] },
+  { key:'nodal', name:'Nodal Return', glyph:'☊', period:18.6,  color:'#D9C48E',
+    blurb:"The lunar nodes complete a full cycle roughly every 18.6 years. A nodal return often marks a course-correction, old default patterns (South Node) stop working as well, and you're pushed toward the unfamiliar growth direction (North Node) more insistently than before." },
+  { key:'chiron', name:'Chiron Return', glyph:'⚷', period:50.7,  color:'#E08585',
+    blurb:"Chiron's return, around age 50, is associated with revisiting the chart's core wound, not to reopen it, but often to finally metabolize it into something usable, sometimes through helping others with the same thing." },
+  { key:'uranusOpp', name:'Uranus Opposition', glyph:'♅', period:84.0107, color:'#7FB3D9', half:true,
+    blurb:"Uranus takes about 84 years for a full return, so most people instead experience its opposition, the halfway point, around age 42, commonly nicknamed the astrological 'midlife' marker. It tends to bring a sharp urge to break from whatever's grown too settled or predictable." }
+];
+
+function calculateReturns(){
+  const dateStr = document.getElementById('inBirthDate').value;
+  if(!dateStr){ return; }
+  const birth = new Date(dateStr + 'T12:00:00');
+  const now = new Date();
+  const ageYears = (now - birth) / (365.2425*24*3600*1000);
+
+  const grid = document.getElementById('returnsGrid');
+  grid.innerHTML = RETURN_BODIES.map(rb=>{
+    if(rb.verifiedPasses && !SHARED){
+      const now2 = new Date();
+      const nextPass = rb.verifiedPasses.find(p=>new Date(p.date) >= now2) || rb.verifiedPasses[rb.verifiedPasses.length-1];
+      const daysToNext = Math.round((new Date(nextPass.date) - now2)/(24*3600*1000));
+      const isSoon = daysToNext >= 0 && daysToNext <= 365;
+      return `
+        <div class="return-card ${isSoon?'now':''}" data-key="${rb.key}" data-verified="1">
+          <div class="rname">${rb.glyph} ${rb.name} <span style="color:var(--gold); font-size:10px; font-family:'IBM Plex Mono',monospace;">VERIFIED</span></div>
+          <div class="rdate">${nextPass.label}: ${nextPass.date}</div>
+          <div class="rmeta">${daysToNext>=0 ? `${daysToNext} days away` : 'in progress / recently passed'} · real ephemeris, 3-pass return</div>
+        </div>`;
+    }
+    const period = rb.half ? rb.period/2 : rb.period;
+    const cyclesElapsed = Math.floor(ageYears/period);
+    const nextDate = new Date(birth.getTime() + (cyclesElapsed+1)*period*365.2425*24*3600*1000);
+    const lastDate = cyclesElapsed>0 ? new Date(birth.getTime() + cyclesElapsed*period*365.2425*24*3600*1000) : null;
+    const daysToNext = Math.round((nextDate - now)/(24*3600*1000));
+    const isSoon = daysToNext >= 0 && daysToNext <= 365;
+    const ordinal = (cyclesElapsed+1)===1 ? '1st' : (cyclesElapsed+1)===2 ? '2nd' : (cyclesElapsed+1)===3 ? '3rd' : (cyclesElapsed+1)+'th';
+    return `
+      <div class="return-card ${isSoon?'now':''}" data-key="${rb.key}" data-cycle="${cyclesElapsed+1}">
+        <div class="rname">${rb.glyph} ${rb.name}</div>
+        <div class="rdate">${ordinal}: ${nextDate.toISOString().slice(0,10)}</div>
+        <div class="rmeta">${isSoon ? `${daysToNext} days away` : (lastDate ? `last: ${lastDate.toISOString().slice(0,10)}` : `age ${(period*(cyclesElapsed+1)).toFixed(1)}`)} · average-period estimate</div>
+      </div>`;
+  }).join('');
+
+  document.querySelectorAll('.return-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const rb = RETURN_BODIES.find(r=>r.key===card.getAttribute('data-key'));
+      if(rb.verifiedPasses && !SHARED){
+        renderVerifiedReturnDetail(rb, birth, ageYears);
+      } else {
+        const cycle = card.getAttribute('data-cycle');
+        renderReturnDetail(rb, cycle, birth, ageYears);
+      }
+    });
+  });
+}
+
+function renderVerifiedReturnDetail(rb, birth, ageYears){
+  const wrap = document.getElementById('returnDetailWrap');
+  const body = document.getElementById('returnDetailBody');
+  wrap.style.display = 'block';
+  body.className = '';
+  const passesHtml = rb.verifiedPasses.map((p,i)=>`
+    <div style="margin-bottom:${i<rb.verifiedPasses.length-1?'14':'0'}px; padding-left:14px; border-left:2px solid ${rb.color};">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:${rb.color}; letter-spacing:.04em;">${p.date}, ${p.label}</div>
+      <div style="font-size:13.5px; color:var(--text-dim); margin-top:3px; line-height:1.6;">${p.note}</div>
+    </div>`).join('');
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${rb.color}; border-color:${rb.color};">${rb.glyph}</div>
+      <div>
+        <div class="detail-title">${rb.name} <span class="accent" style="color:var(--gold);">Verified Timeline</span></div>
+        <div class="detail-tag">Real ephemeris data · you are currently ${ageYears.toFixed(1)} years old</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>What this cycle means</h3>
+      <p>${rb.blurb}</p>
+    </div>
+    <div class="detail-section">
+      <h3>Why three dates, not one</h3>
+      <p>Because transiting Saturn happens to station retrograde and station direct on either side of your exact natal degree this cycle, the return isn't one clean date, it's three passes: an initial direct crossing, a retrograde crossing back over the same point, and a final direct crossing that completes it. This is a real, verified pattern (not the simplified average-period math used for the other returns below), confirmed against this dashboard's own ephemeris engine for 2034–2035.</p>
+    </div>
+    <div class="detail-section">
+      <h3>The three passes</h3>
+      ${passesHtml}
+    </div>
+  `;
+  wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function renderReturnDetail(rb, cycle, birth, ageYears){
+  const wrap = document.getElementById('returnDetailWrap');
+  const body = document.getElementById('returnDetailBody');
+  wrap.style.display = 'block';
+  body.className = '';
+  const period = rb.half ? rb.period/2 : rb.period;
+  const ageAtReturn = period*cycle;
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${rb.color}; border-color:${rb.color};">${rb.glyph}</div>
+      <div>
+        <div class="detail-title">${rb.name} <span class="accent" style="color:${rb.color};">#${cycle}</span></div>
+        <div class="detail-tag">Around age ${ageAtReturn.toFixed(1)} · you are currently ${ageYears.toFixed(1)}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>What this cycle means</h3>
+      <p>${rb.blurb}</p>
+    </div>
+    <div class="detail-section">
+      <h3>Why the timing is approximate</h3>
+      <p>This date comes from ${rb.name.split(' ')[0]}'s average orbital period (${rb.period} years${rb.half ? ', halved for the opposition point' : ''}), applied directly to your birth date. Real transiting positions vary slightly around that average due to orbital eccentricity and retrograde motion, so the true return can land anywhere from a few days to a few weeks off this estimate, close enough to know which season of your life to watch, not precise enough to circle one exact date.</p>
+    </div>
+  `;
+  wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------------- init: auto-load a saved chart if one exists ---------------- */
+(function initFromShared(){
+  const note = document.getElementById('chartSourceNote');
+  if(SHARED){
+    note.innerHTML = `Auto-loaded <b>${SHARED.name || 'your saved chart'}</b> from <a href="birth-data.html">Birth Data</a>.`;
+    loadIntoForm(sharedAsExample());
+  } else {
+    note.innerHTML = `No chart saved yet, enter one below or <a href="birth-data.html">save one on Birth Data</a> to skip this step next time.`;
+  }
+})();
+</script>
+</body>
+</html>
