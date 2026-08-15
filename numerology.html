@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numerology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --fuchsia:#D46FB3;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:900px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--fuchsia);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--fuchsia); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:700px; line-height:1.65;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:10px;}
+  .chart-source-note a{color:var(--fuchsia); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:17px; margin:0 0 8px;}
+  .panel .hint{font-size:12.5px; color:var(--text-dim); line-height:1.65; margin-bottom:14px;}
+
+  .toggle-row{display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:16px; max-width:420px;}
+  .toggle-row button{flex:1; background:transparent; border:none; color:var(--text-dim); font-family:'Inter'; font-size:12px; font-weight:500; padding:9px 6px; border-radius:7px; cursor:pointer; transition:all .15s ease;}
+  .toggle-row button.active{background:var(--fuchsia); color:#2A0E22;}
+
+  .headline-grid{display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:center; margin-bottom:8px;}
+  @media (max-width:560px){.headline-grid{grid-template-columns:1fr;}}
+  .headline-number{
+    width:100px; height:100px; border-radius:50%; background:var(--input-bg); border:2px solid var(--fuchsia);
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces', serif; font-size:40px;
+    color:var(--fuchsia); flex-shrink:0;
+  }
+  .headline-number.master{border-color:var(--gold); color:var(--gold); box-shadow:0 0 24px rgba(217,169,78,0.25);}
+  .headline-text .hname{font-family:'Fraunces', serif; font-size:20px; color:var(--text);}
+  .headline-text .htag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+
+  .formula-box{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; background:var(--input-bg); border:1px solid var(--border);
+    border-radius:8px; padding:14px 16px; line-height:2.0; color:var(--text-dim); margin-top:16px;
+  }
+  .formula-box b{color:var(--fuchsia);}
+  .formula-box .step{display:block;}
+  .formula-box .arrow{color:var(--text-faint); margin:0 6px;}
+
+  .detail-section{margin-bottom:24px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.08s;}
+  .detail-section:nth-of-type(3){animation-delay:.14s;}
+  .detail-section:nth-of-type(4){animation-delay:.20s;}
+  .detail-section:nth-of-type(5){animation-delay:.26s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--fuchsia); margin:0 0 10px;}
+  .detail-section p{font-size:14.5px; line-height:1.85; color:var(--text); margin:0;}
+  .detail-section p + p{margin-top:12px;}
+
+  .badge{font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:4px 9px; border-radius:20px; display:inline-block;}
+  .badge.master{background:#241C0C; color:var(--gold); border:1px solid var(--gold);}
+  .badge.debt{background:#332020; color:#E08585; border:1px solid #E08585;}
+  .badge.clean{background:var(--input-bg); color:var(--text-dim); border:1px solid var(--border);}
+
+  .compare-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
+  @media (max-width:640px){.compare-grid{grid-template-columns:1fr;}}
+  .compare-card{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:14px;}
+  .compare-card.active{border-color:var(--fuchsia);}
+  .compare-card .cnum{font-family:'Fraunces', serif; font-size:26px; color:var(--text);}
+  .compare-card.active .cnum{color:var(--fuchsia);}
+  .compare-card .clabel{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
+  .compare-card p{font-size:12.5px; color:var(--text-dim); line-height:1.6; margin-top:8px;}
+
+  .pinnacle-preview{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-top:6px;}
+  .pinnacle-preview .prow{display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-dim); padding:6px 0; border-bottom:1px solid var(--border);}
+  .pinnacle-preview .prow:last-child{border-bottom:none;}
+  .pinnacle-preview .prow b{color:var(--gold);}
+
+  .not-built{font-size:12px; color:var(--text-faint); font-style:italic; margin-top:10px;}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Numerology · Life Path</div>
+    <h1>The number carried since birth</h1>
+    <p class="sub">Life Path is numerology's closest equivalent to a Sun sign, the core number derived purely from a birth date, no name required. It has two real, competing calculation conventions that can produce a genuinely different number for the same person, shown here side by side rather than silently picked for you, the same way the Dispositor Tree shows modern and traditional rulership as two real answers instead of one.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+  </header>
+
+  <div class="panel">
+    <h2>Method</h2>
+    <div class="hint">Both are real, both are used by different schools, and they can disagree on more than just phrasing, they can name different archetypes entirely for the same birth date.</div>
+    <div class="toggle-row" id="methodToggle">
+      <button data-method="A" class="active">Method A · reduce M/D/Y separately</button>
+      <button data-method="B">Method B · sum the full date at once</button>
+    </div>
+
+    <div class="headline-grid">
+      <div class="headline-number" id="headlineNumber">6</div>
+      <div class="headline-text">
+        <div class="hname" id="headlineName">Life Path 6</div>
+        <div class="htag" id="headlineTag">The Nurturer</div>
+      </div>
+    </div>
+
+    <div class="formula-box" id="formulaBox"></div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div class="detail-section">
+      <h3>What this number means</h3>
+      <p id="coreText"></p>
+    </div>
+    <div class="detail-section">
+      <h3>At its best</h3>
+      <p id="lightText"></p>
+    </div>
+    <div class="detail-section">
+      <h3>Under pressure</h3>
+      <p id="shadowText"></p>
+    </div>
+    <div class="detail-section">
+      <h3>Karmic Debt check</h3>
+      <p id="debtText"></p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Both methods, side by side</h2>
+    <div class="hint">Toggle above changes which one is treated as "the" Life Path in the sections above, this comparison always shows both, since the disagreement itself is the point.</div>
+    <div class="compare-grid" id="compareGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Where the methods agree: Pinnacle age ranges</h2>
+    <div class="hint">Pinnacles are four life phases built from the birth date, not yet fully built out on this page (see below), but their age boundaries are worth previewing here because of a real technical nuance: the arithmetic always uses the Life Path reduced to a plain single digit, even when the headline number itself is a preserved master number. That means the age brackets come out <b style="color:var(--text-dim);">identical</b> under Method A and Method B for this birth date, only the headline number and its archetype differ, not the life-stage timeline underneath it.</div>
+    <div class="pinnacle-preview" id="pinnaclePreview"></div>
+    <div class="not-built">Full Pinnacle numbers, Challenges, and Personal Year/Month/Day are the next phase of this page, not built yet, see NUMEROLOGY-HANDOFF.md.</div>
+  </div>
+
+  <footer>NUMEROLOGY · Life Path, from a real birth date, two documented methods · not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+const REFERENCE_BIRTH_DATE = '1976-07-04'; // same reference chart used throughout the astrology side
+const BIRTH_DATE = (SHARED && SHARED.birthDate) ? SHARED.birthDate : REFERENCE_BIRTH_DATE;
+const CHART_NAME = SHARED ? SHARED.name : null;
+
+/* ================================================================
+   CORE REDUCTION ENGINE
+   Master numbers (11, 22, 33) are preserved at every stage rather than
+   reduced further, the numerology equivalent of this project's astrology
+   side not force-resolving a mutual reception to a single dispositor.
+   Karmic Debt numbers (13, 14, 16, 19) are flagged at every intermediate
+   stage they appear, even when the final reduced result differs, since
+   real numerology treats a debt number passed through as materially
+   important, not a rounding footnote most casual tools drop silently.
+   ================================================================ */
+const MASTER_NUMBERS = [11, 22, 33];
+const KARMIC_DEBT_NUMBERS = [13, 14, 16, 19];
+
+function digitSum(n){
+  return String(Math.abs(Math.trunc(n))).split('').reduce((s,d)=> s+parseInt(d,10), 0);
+}
+// Reduces n to a single digit or a preserved master number, tracking every
+// karmic debt number it passes through on the way down.
+function reduceTrack(n){
+  const debts = [];
+  let cur = n;
+  while(true){
+    if(KARMIC_DEBT_NUMBERS.includes(cur) && !debts.includes(cur)) debts.push(cur);
+    if(MASTER_NUMBERS.includes(cur)) return { result: cur, isMaster: true, debts, path: [] };
+    if(cur <= 9) return { result: cur, isMaster: false, debts };
+    cur = digitSum(cur);
+  }
+}
+function parseBirthDate(iso){
+  const [y,m,d] = iso.split('-').map(x=>parseInt(x,10));
+  return { year:y, month:m, day:d };
+}
+
+/* ---------------- Life Path, both methods ---------------- */
+function lifePathMethodA(bd){
+  const monthR = reduceTrack(bd.month);
+  const dayR = reduceTrack(bd.day);
+  const yearR = reduceTrack(bd.year);
+  const groupSum = monthR.result + dayR.result + yearR.result;
+  const final = reduceTrack(groupSum);
+  const allDebts = [...monthR.debts, ...dayR.debts, ...yearR.debts, ...final.debts];
+  return {
+    method: 'A', result: final.result, isMaster: final.isMaster,
+    debts: [...new Set(allDebts)],
+    steps: {
+      month: {raw: bd.month, reduced: monthR.result, isMaster: monthR.isMaster},
+      day: {raw: bd.day, reduced: dayR.result, isMaster: dayR.isMaster},
+      year: {raw: bd.year, reduced: yearR.result, isMaster: yearR.isMaster, mid: digitSum(bd.year)},
+      groupSum, final: final.result
+    }
+  };
+}
+function lifePathMethodB(bd){
+  const full = `${String(bd.month).padStart(2,'0')}${String(bd.day).padStart(2,'0')}${bd.year}`;
+  const total = full.split('').reduce((s,d)=> s+parseInt(d,10), 0);
+  const final = reduceTrack(total);
+  return {
+    method: 'B', result: final.result, isMaster: final.isMaster,
+    debts: final.debts,
+    steps: { fullDigits: full, total, final: final.result }
+  };
+}
+
+/* ---------------- Life Path archetype profiles ----------------
+   Core theme, light expression, and shadow expression per number.
+   Composed with the position label ("Life Path") at render time, the
+   same pattern SIGN_PROFILE + composeSignExpression() already use on
+   the Dispositor Tree and Natal Chart pages, so this table can be reused
+   later for Expression, Personal Year, etc. without rewriting it. */
+const NUMBER_PROFILE = {
+  1: { name:'The Leader', core:"independence and original initiative, starting things nobody else has started yet",
+    light:"decisive, self-reliant, willing to go first when no one else will",
+    shadow:"impatient with input, mistakes stubbornness for strength, struggles to actually need anyone" },
+  2: { name:'The Diplomat', core:"cooperation and sensitivity to others, reading a room before acting in it",
+    light:"reads a room accurately, mediates without taking sides, patient with slow processes",
+    shadow:"avoids conflict past the point it's useful, over-accommodates, loses their own position trying to keep everyone comfortable" },
+  3: { name:'The Communicator', core:"self-expression and joy, making hard material easy to hear",
+    light:"articulate, optimistic, genuinely funny without needing to be cruel to get there",
+    shadow:"scatters energy across too many projects at once, uses humor to dodge anything heavy, all talk when it's time to commit" },
+  4: { name:'The Builder', core:"structure, discipline, and reliable work that actually lasts",
+    light:"methodical, trustworthy, builds things that hold up under real weight",
+    shadow:"rigid past the point of usefulness, resents spontaneity, mistakes exhaustion for virtue" },
+  5: { name:'The Freedom Seeker', core:"change, variety, and direct experience over theory",
+    light:"adaptable, genuinely curious, thrives in situations that would suffocate someone who needs routine",
+    shadow:"restless to the point of self-sabotage, commits to nothing long enough to see it through, mistakes escape for growth" },
+  6: { name:'The Nurturer', core:"responsibility, harmony, and care for others, team-first by instinct",
+    light:"shows up reliably for people, builds a genuine home and community, carries responsibility without resentment",
+    shadow:"over-responsible for things that were never theirs to fix, martyrs their own needs, controls under the banner of caretaking" },
+  7: { name:'The Seeker', core:"inner development, analysis, and truth over easy comfort",
+    light:"genuinely reflective, comfortable with solitude, trusts evidence over convenient answers",
+    shadow:"isolates past the point of insight, intellectualizes feeling instead of having it, skeptical of connection itself" },
+  8: { name:'The Powerhouse', core:"material mastery, ambition, and comfort with authority",
+    light:"executes at scale, handles money and power without being corrupted by either",
+    shadow:"measures worth by output, conflates control with security, runs people the way they'd run a project" },
+  9: { name:'The Humanitarian', core:"completion, compassion, and letting go of what's already finished",
+    light:"generous without keeping score, sees the larger pattern past an individual grievance, closes chapters cleanly",
+    shadow:"self-sacrifices past their own actual capacity, resents the very people they gave to, struggles to let anyone give back" },
+  11: { name:'The Illuminator', core:"heightened intuition and inspiration, carrying 2's sensitivity at a far more exposed voltage",
+    light:"genuinely visionary, picks up what others miss before anyone says it out loud, can move people without trying to",
+    shadow:"nervous-system overload, anxiety mistaken for prophecy, burnout from trying to live up to a number they didn't ask for" },
+  22: { name:'The Master Builder', core:"large-scale material realization, carrying 4's structure at a far more exposed voltage",
+    light:"can turn an actual vision into a physical, lasting result most people only ever theorize about",
+    shadow:"the gap between the vision and current resources becomes crushing, perfectionism that never ships, exhaustion from carrying a blueprint nobody else can see yet" },
+  33: { name:'The Master Healer', core:"devoted service through active compassion, carrying 6's nurture at a far more exposed voltage",
+    light:"capable of a level of selfless care that genuinely changes people, teaches through embodiment rather than instruction",
+    shadow:"self-erasure in service of others, unadmitted resentment underneath the giving, an impossible personal standard quietly applied to everyone else too" }
+};
+function composeLifePathText(n){
+  const p = NUMBER_PROFILE[n];
+  return {
+    core: `Life Path ${n} governs ${p.core}. This is the register everything else in a numerology reading gets filtered through first, the closest thing this system has to a Sun sign.`,
+    light: `${p.light[0].toUpperCase()}${p.light.slice(1)}.`,
+    shadow: `${p.shadow[0].toUpperCase()}${p.shadow.slice(1)}.`
+  };
+}
+
+/* ---------------- Pinnacle age-range preview (full Pinnacles not built yet) ---------------- */
+function pinnacleBaseDigit(lifePathResult){
+  // Age-range arithmetic always wants a plain single digit, even a preserved master number
+  // gets reduced one further step here, purely for the age math, not for the reported Life Path.
+  return MASTER_NUMBERS.includes(lifePathResult) ? digitSum(lifePathResult) : lifePathResult;
+}
+function pinnacleAgeBrackets(lifePathResult){
+  const base = pinnacleBaseDigit(lifePathResult);
+  const end1 = 36 - base;
+  const end2 = end1 + 9;
+  const end3 = end2 + 9;
+  return { base, brackets: [
+    { label:'1st Pinnacle', range:`birth – ${end1}` },
+    { label:'2nd Pinnacle', range:`${end1} – ${end2}` },
+    { label:'3rd Pinnacle', range:`${end2} – ${end3}` },
+    { label:'4th Pinnacle', range:`${end3} – onward` }
+  ]};
+}
+
+/* ---------------- rendering ---------------- */
+const bd = parseBirthDate(BIRTH_DATE);
+const resultA = lifePathMethodA(bd);
+const resultB = lifePathMethodB(bd);
+let currentMethod = 'A';
+
+function ordinal(n){ return n+ (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th'); }
+
+function renderHeadline(){
+  const r = currentMethod === 'A' ? resultA : resultB;
+  const profile = NUMBER_PROFILE[r.result];
+  const numEl = document.getElementById('headlineNumber');
+  numEl.textContent = r.result;
+  numEl.className = 'headline-number' + (r.isMaster ? ' master' : '');
+  document.getElementById('headlineName').textContent = `Life Path ${r.result}`;
+  document.getElementById('headlineTag').textContent = profile.name + (r.isMaster ? ' · Master Number' : '');
+
+  const text = composeLifePathText(r.result);
+  document.getElementById('coreText').textContent = text.core;
+  document.getElementById('lightText').textContent = text.light;
+  document.getElementById('shadowText').textContent = text.shadow;
+
+  const debtBox = document.getElementById('debtText');
+  if(r.debts.length){
+    debtBox.innerHTML = `<span class="badge debt">Karmic Debt ${r.debts.join(', ')}</span> found in the reduction chain. ${r.debts.map(d=>KARMIC_DEBT_TEXT[d]).join(' ')}`;
+  } else {
+    debtBox.innerHTML = `<span class="badge clean">No Karmic Debt</span> None of this Life Path's reduction stages (day of birth, and the intermediate sums along the way) land on 13, 14, 16, or 19. Worth checking again once Expression can be computed from a full birth name, that's where debt numbers show up most often in practice.`;
+  }
+
+  renderFormula(r);
+  renderPinnacles(r);
+}
+
+const KARMIC_DEBT_TEXT = {
+  13: "13 traditionally reads as a debt of effort, avoiding real work in a past pattern, requiring this life to build things the hard way, on purpose.",
+  14: "14 traditionally reads as a debt of freedom, past abuse of liberty or overindulgence, requiring this life to practice real self-discipline around excess.",
+  16: "16 traditionally reads as a debt of power, past misuse of authority or ego, requiring a fall and rebuild of the self on more honest terms.",
+  19: "19 traditionally reads as a debt of self-focus, past self-absorption at others' expense, requiring this life to actually ask for help rather than insist on going it alone."
+};
+
+function renderFormula(r){
+  const box = document.getElementById('formulaBox');
+  if(r.method === 'A'){
+    const s = resultA.steps;
+    box.innerHTML = `
+      <span class="step"><b>Method A</b>, reduce month, day, and year separately, preserving a master number within any single group:</span>
+      <span class="step">Month ${s.month.raw} <span class="arrow">→</span> <b>${s.month.reduced}</b>${s.month.isMaster?' (master, preserved)':''}</span>
+      <span class="step">Day ${s.day.raw} <span class="arrow">→</span> ${s.day.raw>9?`${digitSum(s.day.raw)} → `:''}<b>${s.day.reduced}</b>${s.day.isMaster?' (master, preserved)':''}</span>
+      <span class="step">Year ${s.year.raw} <span class="arrow">→</span> ${s.year.mid} <span class="arrow">→</span> <b>${s.year.reduced}</b>${s.year.isMaster?' (master, preserved)':''}</span>
+      <span class="step">Sum: ${s.month.reduced} + ${s.day.reduced} + ${s.year.reduced} = <b>${s.groupSum}</b> <span class="arrow">→</span> <b>${s.final}</b>${resultA.isMaster?' (master, preserved, reduction stops here)':''}</span>
+    `;
+  } else {
+    const s = resultB.steps;
+    const digits = s.fullDigits.split('').join(' + ');
+    box.innerHTML = `
+      <span class="step"><b>Method B</b>, sum every digit of the full date as one number, check for a master number at that first total before reducing further:</span>
+      <span class="step">${digits} = <b>${s.total}</b></span>
+      <span class="step">${MASTER_NUMBERS.includes(s.total)
+        ? `${s.total} is a master number, reduction stops immediately: <b>${s.final}</b>`
+        : `${s.total} is not a master number, continue reducing: <b>${s.final}</b>`}</span>
+    `;
+  }
+}
+
+function renderPinnacles(r){
+  const pb = pinnacleAgeBrackets(r.result);
+  const otherResult = currentMethod === 'A' ? resultB : resultA;
+  const otherPb = pinnacleAgeBrackets(otherResult.result);
+  const sameEitherWay = JSON.stringify(pb.brackets) === JSON.stringify(otherPb.brackets);
+  const box = document.getElementById('pinnaclePreview');
+  box.innerHTML = `
+    <div class="prow"><span>Life Path used for this reading</span><b>${r.result}${r.isMaster?' (master)':''}</b></div>
+    <div class="prow"><span>Reduced to a plain digit for Pinnacle age math</span><b>${pb.base}</b></div>
+    ${pb.brackets.map(b=>`<div class="prow"><span>${b.label}</span><b>age ${b.range}</b></div>`).join('')}
+    <div class="prow"><span>Same brackets under the other method?</span><b style="color:${sameEitherWay?'var(--teal)':'#E08585'};">${sameEitherWay ? 'Yes, identical' : 'No, they differ'}</b></div>
+  `;
+}
+
+function renderCompare(){
+  const host = document.getElementById('compareGrid');
+  host.innerHTML = [
+    { r: resultA, label:'Method A', active: currentMethod==='A' },
+    { r: resultB, label:'Method B', active: currentMethod==='B' }
+  ].map(({r,label,active})=>{
+    const profile = NUMBER_PROFILE[r.result];
+    return `<div class="compare-card ${active?'active':''}">
+      <div class="cnum">${r.result}${r.isMaster?' <span style="font-size:14px; color:var(--gold);">MASTER</span>':''}</div>
+      <div class="clabel">${label} · ${profile.name}</div>
+      <p>${r.debts.length ? `Passes through Karmic Debt ${r.debts.join(', ')} on the way.` : 'No Karmic Debt in this chain.'}</p>
+    </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('#methodToggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentMethod = btn.getAttribute('data-method');
+    document.querySelectorAll('#methodToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+    renderHeadline();
+    renderCompare();
+  });
+});
+
+/* ---------------- chart source note ---------------- */
+function renderChartSourceNote(){
+  const el = document.getElementById('chartSourceNote');
+  if(SHARED && SHARED.birthDate){
+    el.innerHTML = `Reading <b>${CHART_NAME || 'your saved chart'}</b>'s birth date (${BIRTH_DATE}), entered on <a href="birth-data.html">Birth Data</a>.`;
+  } else {
+    el.innerHTML = `No chart saved yet, showing this dashboard's built-in reference birth date (${REFERENCE_BIRTH_DATE}). Enter yours on <a href="birth-data.html">Birth Data</a>.`;
+  }
+}
+
+/* ---------------- init ---------------- */
+renderChartSourceNote();
+renderHeadline();
+renderCompare();
+</script>
+</body>
+</html>
