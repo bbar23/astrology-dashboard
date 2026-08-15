@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>House Rulership</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --rose:#E08FA8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--gold);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--rose); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:700px; line-height:1.6;}
+
+  .layout{display:grid; grid-template-columns:300px 1fr; gap:18px;}
+  @media (max-width: 880px){.layout{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:15px; margin:0 0 4px;}
+  .panel .hint{font-size:12px; color:var(--text-faint); margin-bottom:14px; line-height:1.5;}
+
+  .ruler-toggle{display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:14px;}
+  .ruler-toggle button{flex:1; background:transparent; border:none; color:var(--text-dim); font-family:'Inter'; font-size:12px; font-weight:500; padding:8px 4px; border-radius:7px; cursor:pointer; transition:all .15s ease;}
+  .ruler-toggle button.active{background:var(--rose); color:#2A0E1B;}
+
+  .field-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .field-row label{font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:70px;}
+  .glyph{font-size:15px; width:20px; text-align:center; color:var(--rose);}
+  select{
+    flex:1; background:var(--input-bg); color:var(--text); border:1px solid var(--border); border-radius:7px;
+    padding:6px 8px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; cursor:pointer;
+  }
+  select:focus{outline:2px solid var(--rose); outline-offset:1px;}
+  .asc-row select{border-color:var(--rose);}
+  .divider{height:1px; background:var(--border); margin:14px 0; border:none;}
+
+  .btn-row{display:flex; gap:8px; margin-top:12px;}
+  button.primary, button.ghost{font-family:'Inter'; font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--border);}
+  button.primary{background:var(--rose); color:#2A0E1B; border:1px solid var(--rose); flex:1;}
+  button.ghost{background:transparent; color:var(--text-dim);}
+  button.primary:hover{filter:brightness(1.08);}
+  button.ghost:hover{color:var(--text); border-color:var(--text-faint);}
+
+  .house-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:10px;}
+  .house-card{
+    background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:13px 14px;
+    cursor:pointer; transition:border-color .15s ease; position:relative;
+  }
+  .house-card:hover{border-color:var(--rose);}
+  .house-card.self-ruling{border-color:var(--gold); background:#1A1610;}
+  .house-card.self-ruling::before{
+    content:'SELF-RULING'; position:absolute; top:-8px; right:10px; background:var(--gold); color:#1a1406;
+    font-family:'IBM Plex Mono', monospace; font-size:8.5px; font-weight:700; padding:2px 6px; border-radius:10px; letter-spacing:.04em;
+  }
+  .house-card .hname{font-family:'Fraunces', serif; font-size:15.5px; color:var(--text); display:flex; align-items:center; gap:6px;}
+  .house-card .hsign{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--rose); margin-top:4px;}
+  .house-card .href{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-faint); margin-top:3px;}
+  .empty-state{color:var(--text-faint); font-size:13px; padding:40px 20px; text-align:center; line-height:1.6;}
+
+  .detail-panel{max-width:800px; margin:0 auto;}
+  .detail-empty{color:var(--text-faint); font-size:13px; line-height:1.6;}
+  .detail-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .detail-glyph{width:46px; height:46px; border-radius:50%; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; font-family:'IBM Plex Mono', monospace; font-weight:700; flex-shrink:0;}
+  .detail-title{font-family:'Fraunces', serif; font-weight:500; font-size:21px;}
+  .detail-title .accent{color:var(--rose);}
+  .detail-tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+  .detail-section{margin-bottom:26px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.07s;}
+  .detail-section:nth-of-type(3){animation-delay:.12s;}
+  .detail-section:nth-of-type(4){animation-delay:.17s;}
+  .detail-section:nth-of-type(5){animation-delay:.22s;}
+  .detail-section:nth-of-type(6){animation-delay:.27s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--rose); margin:0 0 10px;}
+  .detail-section p{font-size:14.5px; line-height:1.8; color:var(--text); margin:0;}
+  .detail-section p + p{margin-top:12px;}
+  .condition-box{
+    display:flex; align-items:flex-start; gap:10px; background:var(--input-bg); border:1px solid var(--border);
+    border-radius:8px; padding:12px 14px; flex-direction:column;
+  }
+  .badge{font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:4px 9px; border-radius:20px;}
+  .badge.regard{background:#16332C; color:var(--teal); border:1px solid var(--teal);}
+  .badge.aversion{background:#332020; color:#E08585; border:1px solid #E08585;}
+  .badge.self{background:#241C0C; color:var(--gold); border:1px solid var(--gold);}
+
+  .cluster-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:10px; margin-top:10px;}
+  .cluster-card{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px;}
+  .cluster-card .cname{font-family:'Fraunces', serif; font-size:14px; color:var(--gold);}
+  .cluster-card .chouses{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-dim); margin-top:5px; line-height:1.6;}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:12px;}
+  .chart-source-note a{color:var(--rose); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · House Rulership</div>
+    <h1>Who's actually running each house</h1>
+    <p class="sub">The same dispositor logic the Dispositor Tree applies to planets, applied to house cusps instead. Every house's sign has a ruler, a planet, and that planet's own placement (sign, house, dignity) tells you where that house's affairs actually get conducted. Enter your Ascendant and all ten planets, or load the reference chart.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Chart input</h2>
+      <div class="hint">Ascendant sign sets your twelve whole-sign houses. Select a sign for the Ascendant and all ten planets, then press Build.</div>
+
+      <div class="ruler-toggle">
+        <button id="btnModern" class="active">Modern rulers</button>
+        <button id="btnTrad">Traditional rulers</button>
+      </div>
+
+      <div class="field-row asc-row"><label><span class="glyph">ASC</span>Ascendant</label>
+        <select id="ascSign"><option value="">–</option></select>
+      </div>
+      <hr class="divider">
+      <div id="planetFields"></div>
+
+      <div class="btn-row">
+        <button class="primary" id="btnBuild">Build</button>
+        <button class="ghost" id="btnExample">Load my chart</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>The twelve houses</h2>
+      <div class="hint">Click any house for the full reading: its ruler, where that ruler sits, and what that means for this house's affairs.</div>
+      <div class="house-grid" id="houseGrid"><div class="empty-state">Enter your Ascendant and all ten planets, then press <b style="color:var(--text-dim)">Build</b>.</div></div>
+    </div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Tap a house above to read how it's ruled, where that ruler sits, and what that means.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Where the houses cluster</h2>
+    <div class="hint">Group houses by which of your houses their ruler actually sits in. When several house-cusps' rulers converge on the same house, that house is quietly running more of the chart than its own placement alone would suggest.</div>
+    <div id="synthesisBody"><p style="color:var(--text-faint); font-size:13px;">Build the chart above to see this.</p></div>
+  </div>
+
+  <footer>HOUSE RULERSHIP · dispositor-chain logic applied to house cusps · not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- reference data ---------------- */
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const SIGN_KEYWORDS = {
+  Aries:"initiating, direct, and quick to act", Taurus:"steady, sensory, and slow to move",
+  Gemini:"curious, communicative, and quick-shifting", Cancer:"protective, feeling-based, and cyclical",
+  Leo:"expressive, warm, and proud", Virgo:"precise, discerning, and service-minded",
+  Libra:"relational, balancing, and aesthetic", Scorpio:"intense, probing, and private",
+  Sagittarius:"expansive, philosophical, and blunt", Capricorn:"disciplined, structured, and patient",
+  Aquarius:"independent, unconventional, and idea-driven", Pisces:"dreamy, boundaryless, and empathic"
+};
+const TRAD_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Mars",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Saturn",Pisces:"Jupiter"};
+const MODERN_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Pluto",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Uranus",Pisces:"Neptune"};
+const EXALTATION = {Sun:'Aries',Moon:'Taurus',Mercury:'Virgo',Venus:'Pisces',Mars:'Capricorn',Jupiter:'Cancer',Saturn:'Libra'};
+const HOUSE_MEANINGS = {
+  1:"the body, appearance, and how you initiate", 2:"resources, income, and what you hold onto",
+  3:"communication, siblings, and everyday learning", 4:"home, family roots, and your private foundation",
+  5:"creativity, romance, children, and pleasure", 6:"daily work, health routines, and service",
+  7:"partnership, marriage, contracts, significant others", 8:"shared resources, intimacy, and transformation",
+  9:"belief, higher education, and long travel", 10:"career, public reputation, and the role you're known for",
+  11:"friendship, community, and hopes for the future", 12:"the unconscious, isolation, and what stays hidden"
+};
+const HOUSE_CONCRETE = {
+  1:"your body and physical vitality, the first impression you make",
+  2:"your income, your possessions, how tightly worth is tied to what you own",
+  3:"siblings, texts and emails, the offhand way you talk day to day",
+  4:"your childhood home, your parents, the domestic patterns you inherited",
+  5:"dating, creative projects you finish, children, the risks you take for fun",
+  6:"your job's daily grind, health routines, pets, an ordinary Tuesday",
+  7:"your marriage or committed partner, business partners, open rivals",
+  8:"shared money, sex, therapy, whatever gets entangled with someone else's resources",
+  9:"travel abroad, higher education, publishing, the worldview you build on",
+  10:"your career trajectory, your public reputation, the role strangers would use to describe you",
+  11:"your friend groups, long-range goals, the causes you attach hope to",
+  12:"solitude, institutions, secrets, including ones you keep from yourself"
+};
+const HOUSE_QUADRANT = {1:'angular',4:'angular',7:'angular',10:'angular', 2:'succedent',5:'succedent',8:'succedent',11:'succedent', 3:'cadent',6:'cadent',9:'cadent',12:'cadent'};
+const QUADRANT_TEXT = {
+  angular:"an angular house, themes here tend to show up as visible, nameable events rather than a slow drift",
+  succedent:"a succedent house, themes here build gradually, as something accumulated or maintained over time",
+  cadent:"a cadent house, themes here run mental and behind-the-scenes, often understood in hindsight"
+};
+const PLANETS = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+const PLANET_GLYPH = {Sun:"☉",Moon:"☽",Mercury:"☿",Venus:"♀",Mars:"♂",Jupiter:"♃",Saturn:"♄",Uranus:"♅",Neptune:"♆",Pluto:"♇"};
+const PLANET_KEYWORDS = {
+  Sun:"identity, vitality, and conscious will", Moon:"emotional need, instinct, and what makes you feel safe",
+  Mercury:"thought, perception, and communication", Venus:"what you value and what you're drawn to",
+  Mars:"drive, assertion, and how you go after what you want", Jupiter:"expansion, meaning-making, and where you seek growth",
+  Saturn:"structure, responsibility, and where you build discipline", Uranus:"independence, disruption, and sudden insight",
+  Neptune:"imagination, dissolution, and idealism", Pluto:"transformation, power, and what runs at the depths"
+};
+
+const EXAMPLE_CHART = {
+  Sun:"Cancer", Moon:"Libra", Mercury:"Cancer", Venus:"Cancer", Mars:"Leo",
+  Jupiter:"Taurus", Saturn:"Leo", Uranus:"Scorpio", Neptune:"Sagittarius", Pluto:"Libra"
+};
+const EXAMPLE_ASC = "Virgo";
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+function signOfLon(lon){ const x=((lon%360)+360)%360; return SIGNS[Math.floor(x/30)%12]; }
+function sharedAsExample(){
+  if(!SHARED) return null;
+  const P = SHARED.points;
+  const chart = {};
+  PLANETS.forEach(p=> chart[p] = signOfLon(P[p]));
+  return { chart, asc: signOfLon(P.Ascendant), name: SHARED.name };
+}
+
+function oppositeSign(sign){ const idx=SIGNS.indexOf(sign); return SIGNS[(idx+6)%12]; }
+function domicileTable(rulers){ const d={}; Object.keys(rulers).forEach(s=>{const p=rulers[s]; if(!d[p])d[p]=[]; d[p].push(s);}); return d; }
+function dignityOf(planet, sign, system){
+  const dom = domicileTable(system==='modern'?MODERN_RULERS:TRAD_RULERS);
+  if(dom[planet] && dom[planet].includes(sign)) return 'domicile';
+  if(EXALTATION[planet] === sign) return 'exaltation';
+  if(dom[planet] && dom[planet].map(oppositeSign).includes(sign)) return 'detriment';
+  if(EXALTATION[planet] && oppositeSign(EXALTATION[planet]) === sign) return 'fall';
+  return 'peregrine';
+}
+const DIGNITY_BLURB = {
+  domicile:"strong and at home here, comfortable operating on its own terms",
+  exaltation:"elevated and confident here, performing at its best",
+  detriment:"working against the grain here, has to work harder to express cleanly",
+  fall:"weakened here, its usual strengths are hard to access",
+  peregrine:"in neutral territory, no special strength or struggle from sign placement alone"
+};
+function isAversion(sign1, sign2){
+  const i1=SIGNS.indexOf(sign1), i2=SIGNS.indexOf(sign2);
+  const d0=Math.abs(i1-i2), d=Math.min(d0,12-d0);
+  return d===1||d===5;
+}
+
+/* ---------------- input fields ---------------- */
+const ascSelect = document.getElementById('ascSign');
+SIGNS.forEach(s=> ascSelect.innerHTML += `<option value="${s}">${s}</option>`);
+
+const planetFieldsEl = document.getElementById('planetFields');
+PLANETS.forEach(p=>{
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.innerHTML = `
+    <label><span class="glyph">${PLANET_GLYPH[p]}</span>${p}</label>
+    <select data-planet="${p}"><option value="">–</option>${SIGNS.map(s=>`<option value="${s}">${s}</option>`).join('')}</select>
+  `;
+  planetFieldsEl.appendChild(row);
+});
+
+/* ---------------- state ---------------- */
+let rulerSystem = 'modern';
+let ascSign = null;
+let chartData = {};
+let houses = null; // computed array
+let selectedHouse = null;
+
+document.getElementById('btnModern').addEventListener('click', ()=>{
+  rulerSystem = 'modern';
+  document.getElementById('btnModern').classList.add('active');
+  document.getElementById('btnTrad').classList.remove('active');
+  if(houses) build();
+});
+document.getElementById('btnTrad').addEventListener('click', ()=>{
+  rulerSystem = 'traditional';
+  document.getElementById('btnTrad').classList.add('active');
+  document.getElementById('btnModern').classList.remove('active');
+  if(houses) build();
+});
+
+function loadIntoForm(chart, asc){
+  ascSelect.value = asc;
+  PLANETS.forEach(p=>{
+    planetFieldsEl.querySelector(`select[data-planet="${p}"]`).value = chart[p];
+  });
+  build();
+}
+document.getElementById('btnExample').addEventListener('click', ()=>{
+  const shared = sharedAsExample();
+  if(shared) loadIntoForm(shared.chart, shared.asc);
+  else loadIntoForm(EXAMPLE_CHART, EXAMPLE_ASC);
+});
+if(SHARED){
+  document.getElementById('btnExample').textContent = `Load ${SHARED.name || 'my'} chart`;
+}
+document.getElementById('btnBuild').addEventListener('click', build);
+
+/* ---------------- core computation ---------------- */
+function getRulers(){ return rulerSystem === 'modern' ? MODERN_RULERS : TRAD_RULERS; }
+
+function readInputs(){
+  ascSign = ascSelect.value || null;
+  chartData = {};
+  let complete = !!ascSign;
+  PLANETS.forEach(p=>{
+    const v = planetFieldsEl.querySelector(`select[data-planet="${p}"]`).value;
+    chartData[p] = v;
+    if(!v) complete = false;
+  });
+  return complete;
+}
+
+function build(){
+  const complete = readInputs();
+  if(!complete){
+    document.getElementById('houseGrid').innerHTML = '<div class="empty-state">Enter your Ascendant and all ten planets, then press <b style="color:var(--text-dim)">Build</b>.</div>';
+    document.getElementById('synthesisBody').innerHTML = '<p style="color:var(--text-faint); font-size:13px;">Build the chart above to see this.</p>';
+    houses = null; selectedHouse = null;
+    renderDetail(null);
+    return;
+  }
+  const rulers = getRulers();
+  const ascIdx = SIGNS.indexOf(ascSign);
+
+  // where each planet actually sits (sign + house), from chartData
+  const placement = {};
+  PLANETS.forEach(p=>{
+    const sign = chartData[p];
+    const idx = SIGNS.indexOf(sign);
+    const house = ((idx-ascIdx+12)%12)+1;
+    placement[p] = { sign, house };
+  });
+
+  houses = [];
+  for(let h=1; h<=12; h++){
+    const sign = SIGNS[(ascIdx+h-1)%12];
+    const ruler = rulers[sign];
+    const rulerPlacement = placement[ruler];
+    houses.push({
+      house:h, sign, ruler,
+      rulerSign: rulerPlacement.sign,
+      rulerHouse: rulerPlacement.house,
+      selfRuling: rulerPlacement.house === h
+    });
+  }
+
+  renderHouseGrid();
+  renderSynthesis();
+  if(selectedHouse) renderDetail(houses.find(x=>x.house===selectedHouse.house));
+}
+
+/* ---------------- rendering: house grid ---------------- */
+function renderHouseGrid(){
+  const host = document.getElementById('houseGrid');
+  host.innerHTML = houses.map(h=>`
+    <div class="house-card ${h.selfRuling?'self-ruling':''}" data-house="${h.house}">
+      <div class="hname">${SIGN_GLYPH[h.sign]} ${ordinal(h.house)} house</div>
+      <div class="hsign">${h.sign}, ruled by ${PLANET_GLYPH[h.ruler]} ${h.ruler}</div>
+      <div class="href">${h.ruler} sits in your ${ordinal(h.rulerHouse)} house</div>
+    </div>
+  `).join('');
+  document.querySelectorAll('.house-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const h = houses.find(x=>x.house===parseInt(card.getAttribute('data-house')));
+      selectedHouse = h;
+      renderDetail(h);
+    });
+  });
+}
+
+function ordinal(n){ return n+ (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th'); }
+
+/* ---------------- rendering: detail ---------------- */
+function renderDetail(h){
+  const body = document.getElementById('detailBody');
+  if(!h){ body.className='detail-empty'; body.innerHTML='Tap a house above to read how it\'s ruled, where that ruler sits, and what that means.'; return; }
+  body.className = '';
+
+  const rulerDignity = dignityOf(h.ruler, h.rulerSign, rulerSystem);
+  const averted = isAversion(h.sign, h.rulerSign);
+  const rulerQuadrant = HOUSE_QUADRANT[h.rulerHouse];
+
+  const coTenants = PLANETS.filter(p=>{
+    if(p===h.ruler) return false;
+    const idx = SIGNS.indexOf(chartData[p]);
+    const ph = ((idx-SIGNS.indexOf(ascSign)+12)%12)+1;
+    return ph === h.rulerHouse;
+  });
+
+  const selfHtml = h.selfRuling ? `
+    <div class="detail-section"><h3>A special case: self-ruling</h3>
+      <p>${h.ruler} rules the ${ordinal(h.house)} house's sign (${h.sign}) under ${rulerSystem} rulership, and ${h.ruler} itself <b style="color:var(--gold);">sits in that same house</b>. This house's affairs aren't outsourced anywhere else, the planet in charge of interpreting this house is also physically present living it. That's the house-level equivalent of a planet sitting in the sign it rules, self-sufficient, answering to nothing else for how this domain gets run.</p>
+    </div>` : '';
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:var(--rose); border-color:var(--rose);">${SIGN_GLYPH[h.sign]}</div>
+      <div>
+        <div class="detail-title">${ordinal(h.house)} house <span class="accent">in ${h.sign}</span></div>
+        <div class="detail-tag">${HOUSE_QUADRANT[h.house]} · ruled by ${h.ruler}${h.selfRuling ? ' · self-ruling' : ''}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>How this house is ruled</h3>
+      <p>The ${ordinal(h.house)} house falls in ${h.sign}, ${SIGN_KEYWORDS[h.sign]}. Under ${rulerSystem} rulership, ${h.sign} is ruled by <b style="color:var(--gold);">${h.ruler}</b>, so this house's affairs (${HOUSE_MEANINGS[h.house]}) run through wherever ${h.ruler} actually sits, not just through this house's own sign.</p>
+    </div>
+    <div class="detail-section">
+      <h3>Where the ruler sits</h3>
+      <p>${h.ruler} is in ${h.rulerSign} in your ${ordinal(h.rulerHouse)} house, ${QUADRANT_TEXT[rulerQuadrant]}. Concretely, that house runs through ${HOUSE_CONCRETE[h.rulerHouse]}, so this ${ordinal(h.house)}-house business (${HOUSE_MEANINGS[h.house].split(',')[0]}) tends to actually play out there.</p>
+    </div>
+    <div class="detail-section">
+      <h3>Ruler condition</h3>
+      <div class="condition-box">
+        <span class="badge ${rulerDignity==='domicile'||rulerDignity==='exaltation'?'regard':(rulerDignity==='detriment'||rulerDignity==='fall'?'aversion':'')}" style="${rulerDignity==='peregrine'?'background:var(--input-bg);color:var(--text-dim);border:1px solid var(--border);':''}">${rulerDignity}</span>
+        <p style="font-size:13px; color:var(--text-dim); margin:0;">${h.ruler} in ${h.rulerSign} is ${DIGNITY_BLURB[rulerDignity]}. ${averted ? `${h.ruler} is also averted from the ${ordinal(h.house)} house's own sign, it can't directly "see" or easily support what this house needs.` : `${h.ruler} is in regard with the ${ordinal(h.house)} house's own sign, it can actively lend support here.`}</p>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>Following the chain further</h3>
+      <p>${coTenants.length
+        ? `${h.ruler} isn't alone in the ${ordinal(h.rulerHouse)} house, <b style="color:var(--gold);">${coTenants.join(', ')}</b> ${coTenants.length===1?'is':'are'} there too, so this house's business is entangled with ${coTenants.length===1?"that planet's":"those planets'"} themes as well.`
+        : `No other planet shares the ${ordinal(h.rulerHouse)} house with ${h.ruler}, whatever happens there on this house's behalf is ${h.ruler}'s alone to carry.`}</p>
+    </div>
+    ${selfHtml}
+    <div class="detail-section">
+      <h3>Where it connects</h3>
+      <p>Trace ${h.ruler}'s own full dispositor chain, what it ultimately answers to beyond this one house, on the <a href="dispositor-tree.html" style="color:var(--rose);">Dispositor Tree</a>.</p>
+    </div>
+  `;
+  document.getElementById('detailBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------------- rendering: synthesis ---------------- */
+function renderSynthesis(){
+  const byPlacementHouse = {};
+  houses.forEach(h=>{
+    if(!byPlacementHouse[h.rulerHouse]) byPlacementHouse[h.rulerHouse] = [];
+    byPlacementHouse[h.rulerHouse].push(h.house);
+  });
+  const clusters = Object.keys(byPlacementHouse)
+    .map(h=>({ placementHouse: parseInt(h), houses: byPlacementHouse[h] }))
+    .filter(c=>c.houses.length >= 2)
+    .sort((a,b)=>b.houses.length-a.houses.length);
+  const selfRuling = houses.filter(h=>h.selfRuling);
+
+  let html = '';
+  if(clusters.length){
+    html += `<div class="cluster-grid">${clusters.map(c=>`
+      <div class="cluster-card">
+        <div class="cname">${ordinal(c.placementHouse)} house</div>
+        <div class="chouses">Rules the affairs of ${c.houses.length} houses: ${c.houses.map(ordinal).join(', ')}, since each of those cusps' rulers physically sits here.</div>
+      </div>
+    `).join('')}</div>
+    <p style="font-size:13.5px; line-height:1.8; color:var(--text); margin-top:16px;">${clusters[0].houses.length >= 3
+      ? `The ${ordinal(clusters[0].placementHouse)} house is doing a disproportionate amount of work in this chart: ${clusters[0].houses.length} separate house cusps (${clusters[0].houses.map(ordinal).join(', ')}) all have their business conducted there, through whichever planets happen to live in that house. That's not a coincidence of the math, it's usually because several planets cluster in one house and each also rules a sign elsewhere in the chart.`
+      : `No single house dominates this chart's rulership traffic the way a stellium-heavy chart sometimes shows, the twelve houses' business is reasonably distributed across where their rulers actually sit.`}</p>`;
+  } else {
+    html = `<p style="color:var(--text-dim); font-size:13.5px; line-height:1.8;">No house currently hosts two or more other houses' rulers, this chart's twelve houses each run their business through a placement no other house cusp also depends on.</p>`;
+  }
+  if(selfRuling.length){
+    html += `<p style="font-size:13.5px; line-height:1.8; color:var(--text); margin-top:14px;"><b style="color:var(--gold);">${selfRuling.map(h=>ordinal(h.house)).join(', ')} house${selfRuling.length===1?' is':'s are'} self-ruling</b>: ${selfRuling.map(h=>`${h.ruler} rules its own ${ordinal(h.house)} house's sign (${h.sign}) and sits right there too`).join('; ')}. ${selfRuling.length===1?'That house answers':'Those houses answer'} to nothing else for how its business gets run.</p>`;
+  }
+  document.getElementById('synthesisBody').innerHTML = html;
+}
+
+/* ---------------- init: auto-load a saved chart if one exists ---------------- */
+(function initFromShared(){
+  const note = document.getElementById('chartSourceNote');
+  if(SHARED){
+    note.innerHTML = `Auto-loaded <b>${SHARED.name || 'your saved chart'}</b> from <a href="birth-data.html">Birth Data</a>.`;
+    const shared = sharedAsExample();
+    loadIntoForm(shared.chart, shared.asc);
+  } else {
+    note.innerHTML = `No chart saved yet, enter one below or <a href="birth-data.html">save one on Birth Data</a> to skip this step next time.`;
+  }
+})();
+</script>
+</body>
+</html>
