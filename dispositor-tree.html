@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispositor Chain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203;
+    --panel:#0E0E13;
+    --panel-2:#141419;
+    --border:#26262E;
+    --text:#F1EDE4;
+    --text-dim:#ABA8AE;
+    --text-faint:#605D66;
+    --gold:#D9A94E;
+    --gold-dim:#7A6535;
+    --teal:#5FB8AC;
+    --teal-dim:#325752;
+    --edge:#38363E;
+    --input-bg:#17161C;
+    --ring:#17161C;
+    --violet:#9A8CD6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#05060D;
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:clamp(26px,4vw,36px);
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .sub{color:var(--text-dim); font-size:14px; max-width:640px; line-height:1.55;}
+
+  .layout{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap:18px;
+  }
+  @media (max-width: 880px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px;
+  }
+
+  .panel h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:15px;
+    margin:0 0 4px;
+    color:var(--text);
+  }
+  .panel .hint{
+    font-size:12px;
+    color:var(--text-faint);
+    margin-bottom:14px;
+    line-height:1.5;
+  }
+
+  .ruler-toggle{
+    display:flex;
+    background:var(--input-bg);
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:3px;
+    margin-bottom:16px;
+  }
+  .ruler-toggle button{
+    flex:1;
+    background:transparent;
+    border:none;
+    color:var(--text-dim);
+    font-family:'Inter';
+    font-size:12px;
+    font-weight:500;
+    padding:8px 4px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .ruler-toggle button.active{
+    background:var(--gold);
+    color:#1a1406;
+  }
+
+  .field-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .field-row label{
+    font-size:13px;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:92px;
+  }
+  .glyph{
+    font-size:15px;
+    width:20px;
+    text-align:center;
+    color:var(--gold);
+  }
+  select{
+    flex:1;
+    background:var(--input-bg);
+    color:var(--text);
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:6px 8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  select:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .retro-check{
+    display:flex;
+    align-items:center;
+    gap:3px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--text-faint);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .retro-check input[type=checkbox]{accent-color:var(--gold); margin:0;}
+
+  .divider{
+    height:1px;
+    background:var(--border);
+    margin:16px 0;
+    border:none;
+  }
+
+  details.points{
+    margin-top:2px;
+  }
+  details.points summary{
+    cursor:pointer;
+    font-size:12.5px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing:.02em;
+    padding:4px 0;
+    list-style:none;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  details.points summary::-webkit-details-marker{display:none;}
+  details.points summary:before{
+    content:'▸';
+    color:var(--gold);
+    transition:transform .15s ease;
+    display:inline-block;
+  }
+  details.points[open] summary:before{transform:rotate(90deg);}
+  .points-body{padding-top:10px;}
+  .point-check{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:2px;
+  }
+  .point-check input[type=checkbox]{accent-color:var(--gold);}
+
+  .btn-row{display:flex; gap:8px; margin-top:16px;}
+  button.primary, button.ghost{
+    font-family:'Inter';
+    font-size:12.5px;
+    font-weight:600;
+    padding:9px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    border:1px solid var(--border);
+  }
+  button.primary{
+    background:var(--gold);
+    color:#1a1406;
+    border:1px solid var(--gold);
+    flex:1;
+  }
+  button.ghost{
+    background:transparent;
+    color:var(--text-dim);
+  }
+  button.primary:hover{filter:brightness(1.08);}
+  button.ghost:hover{color:var(--text);border-color:var(--text-faint);}
+
+  .canvas-panel{
+    min-height:520px;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+  .canvas-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .summary-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .summary-line b{color:var(--gold); font-weight:600;}
+  .summary-line.recept b{color:var(--teal);}
+  .summary-line.chartruler b{color:var(--violet);}
+  .summary-line.chartruler{margin-bottom:10px;}
+
+  #svgHost{
+    flex:1;
+    width:100%;
+    min-height:420px;
+  }
+  .empty-state{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    color:var(--text-faint);
+    font-size:13px;
+    padding:40px 20px;
+    line-height:1.6;
+  }
+
+  .node-circle{
+    fill:var(--panel-2);
+    stroke:var(--edge);
+    stroke-width:1.4;
+    cursor:pointer;
+    transition:stroke .15s ease, fill .15s ease;
+  }
+  .node-circle:hover{stroke:var(--text-dim);}
+  .node-circle.selected{stroke:var(--gold); stroke-width:2.2;}
+  .node-circle.final{fill:#241C0C; stroke:var(--gold); stroke-width:2;}
+  .node-circle.recept{fill:#122622; stroke:var(--teal); stroke-width:2;}
+  .node-circle.point{fill:#0F1226; stroke:var(--text-faint); stroke-dasharray:2 3;}
+
+  .node-glyph{
+    font-size:18px;
+    fill:var(--text);
+    text-anchor:middle;
+    dominant-baseline:central;
+    pointer-events:none;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .node-sublabel{
+    font-size:9.5px;
+    fill:var(--text-faint);
+    text-anchor:middle;
+    pointer-events:none;
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing:.03em;
+  }
+  .edge-line{
+    stroke:var(--edge);
+    stroke-width:1.2;
+    fill:none;
+    marker-end:url(#arrow);
+  }
+  .edge-line.point-edge{
+    stroke:var(--text-faint);
+    stroke-dasharray:3 3;
+    marker-end:url(#arrowFaint);
+  }
+
+  .detail-panel{
+    margin-top:18px;
+    max-width:760px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .detail-empty{
+    color:var(--text-faint);
+    font-size:13px;
+    line-height:1.6;
+  }
+  .detail-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .detail-glyph{
+    width:44px;height:44px;
+    border-radius:50%;
+    background:var(--input-bg);
+    border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+    flex-shrink:0;
+  }
+  .detail-title{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:20px;
+  }
+  .detail-title .in-sign{color:var(--gold); font-weight:500;}
+  .detail-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-top:3px;
+  }
+  .detail-section{
+    margin-bottom:26px;
+    opacity:0;
+    transform:translateY(6px);
+    animation:riseIn .5s ease forwards;
+  }
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.08s;}
+  .detail-section:nth-of-type(3){animation-delay:.14s;}
+  .detail-section:nth-of-type(4){animation-delay:.20s;}
+  .detail-section:nth-of-type(5){animation-delay:.26s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 10px;
+  }
+  .detail-section p{
+    font-size:15px;
+    line-height:1.85;
+    color:var(--text);
+    margin:0;
+  }
+  .detail-section p + p{margin-top:12px;}
+  .chain-strip{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+  }
+  .chain-strip .chip{
+    background:var(--input-bg);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px 8px;
+  }
+  .chain-strip .chip.final{border-color:var(--gold); color:var(--gold);}
+  .chain-strip .arrow{color:var(--text-faint);}
+
+  footer{
+    text-align:center;
+    margin-top:28px;
+    font-size:11px;
+    color:var(--text-faint);
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:12px;}
+  .chart-source-note a{color:var(--gold); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+
+  <div class="breadcrumb" style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;"><a href="dashboard.html" style="color:var(--text-dim); text-decoration:none;">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · Dispositor Chains</div>
+    <h1>Where does the energy resolve?</h1>
+    <p class="sub">Enter the sign each planet occupies. Every planet points to the ruler of its sign, follow enough arrows and the chain resolves at a final dispositor, or loops in mutual reception. Tap any node for the full reasoning.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+  </header>
+
+  <div class="layout">
+
+    <div class="panel">
+      <h2>Chart input</h2>
+      <div class="hint">Select a sign for all 10 planets to build the tree.</div>
+
+      <div class="ruler-toggle">
+        <button id="btnModern" class="active">Modern rulers</button>
+        <button id="btnTrad">Traditional rulers</button>
+      </div>
+
+      <div class="hint" style="margin-bottom:6px;">Sect (day birth or night birth), feeds each planet's in-sect/contrary-to-sect reading.</div>
+      <div class="ruler-toggle" style="margin-bottom:16px;">
+        <button id="btnSectDay">Day birth</button>
+        <button id="btnSectNight" class="active">Night birth</button>
+      </div>
+
+      <div id="planetFields"></div>
+
+      <hr class="divider">
+
+      <details class="points">
+        <summary>Optional points (Node, Angles, Chiron)</summary>
+        <div class="points-body" id="pointFields"></div>
+      </details>
+
+      <div class="btn-row">
+        <button class="primary" id="btnBuild">Build tree</button>
+        <button class="ghost" id="btnExample">Load my chart</button>
+      </div>
+    </div>
+
+    <div class="panel canvas-panel">
+      <div class="canvas-head">
+        <div class="summary-line" id="finalLine">Final dispositor: <b>None yet</b></div>
+        <div class="summary-line recept" id="receptLine">Mutual receptions: <b>None yet</b></div>
+      </div>
+      <div class="summary-line chartruler" id="chartRulerLine">Chart ruler (Asc. dispositor): <b style="color:var(--text-faint); font-weight:500;">enter your Ascendant under optional points to see this</b></div>
+      <div id="synthesisBox" style="font-size:12.5px; line-height:1.6; color:var(--text-dim); margin-bottom:10px;"></div>
+      <div id="svgHost">
+        <div class="empty-state" id="emptyState">Fill in all ten planets, then press <b style="color:var(--text-dim)">Build tree</b> to see the chain.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Tap a node in the chart above to read how it got there, what it means, and where the chain leads next.</div>
+  </div>
+
+  <footer>DISPOSITOR CHAIN · a way of tracing sign-rulership, not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- data ---------------- */
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const SIGN_ABBR = {Aries:"Ari",Taurus:"Tau",Gemini:"Gem",Cancer:"Can",Leo:"Leo",Virgo:"Vir",Libra:"Lib",Scorpio:"Sco",Sagittarius:"Sag",Capricorn:"Cap",Aquarius:"Aqu",Pisces:"Pis"};
+const SIGN_KEYWORDS = {
+  Aries:"initiating, direct, and quick to act",
+  Taurus:"steady, sensory, and slow to move",
+  Gemini:"curious, communicative, and quick-shifting",
+  Cancer:"protective, feeling-based, and cyclical",
+  Leo:"expressive, warm, and proud",
+  Virgo:"precise, discerning, and service-minded",
+  Libra:"relational, balancing, and aesthetic",
+  Scorpio:"intense, probing, and private",
+  Sagittarius:"expansive, philosophical, and blunt",
+  Capricorn:"disciplined, structured, and patient",
+  Aquarius:"independent, unconventional, and idea-driven",
+  Pisces:"dreamy, boundaryless, and empathic"
+};
+
+// ---- Compositional depth engine: element + modality + a sign's core operating logic,
+// combined per-planet so all 120 planet×sign combinations read as genuinely specific
+// rather than the same handful of adjectives recycled.
+const SIGN_PROFILE = {
+  Aries:      { element:'Fire',  modality:'Cardinal', core:"it moves first and asks questions later, decisive almost to a fault, with a low tolerance for hesitation or waiting for permission" },
+  Taurus:     { element:'Earth', modality:'Fixed',    core:"it moves slowly and deliberately, resists being rushed, and trusts what can be touched, tasted, or verified over what's merely promised" },
+  Gemini:     { element:'Air',   modality:'Mutable',  core:"it processes out loud, through talking, comparing notes, gathering options, and stays restless until there's enough variety and information on the table" },
+  Cancer:     { element:'Water', modality:'Cardinal', core:"it leads with feeling and assesses emotional safety before it assesses anything else, moving in a tidal rhythm of advance and retreat" },
+  Leo:        { element:'Fire',  modality:'Fixed',    core:"it commits fully once engaged, wants to be seen and to matter in the process, and resists being treated as interchangeable or ignored" },
+  Virgo:      { element:'Earth', modality:'Mutable',  core:"it refines before it declares anything finished, notices what's wrong before what's right, and adapts through fixing rather than reinventing" },
+  Libra:      { element:'Air',   modality:'Cardinal', core:"it initiates through relationship and negotiation, weighs both sides carefully (sometimes too long), and grows uncomfortable the moment things turn openly adversarial" },
+  Scorpio:    { element:'Water', modality:'Fixed',    core:"it commits with total intensity, distrusts anything that stays on the surface, and needs to understand the hidden mechanism before it will actually trust it" },
+  Sagittarius:{ element:'Fire',  modality:'Mutable',  core:"it adapts by expanding outward, new experiences, new frameworks, new horizons, rather than by digging in, and says the blunt thing before softening it" },
+  Capricorn:  { element:'Earth', modality:'Cardinal', core:"it initiates through discipline and long-range planning, delays gratification on purpose, and measures success by whether it lasts, not by how it looks today" },
+  Aquarius:   { element:'Air',   modality:'Fixed',    core:"it holds its position even under social pressure, cares more about the principle than about keeping the peace, and processes through detached analysis rather than sentiment" },
+  Pisces:     { element:'Water', modality:'Mutable',  core:"it adapts by dissolving edges, absorbing what's around it, blending timelines, letting the current decide the direction, imaginative but prone to avoiding hard boundaries" }
+};
+const ELEMENT_TEXT = {
+  Fire:  "enthusiasm and forward motion, it recharges through action, not rest, and stalls out if it has nothing to move toward",
+  Earth: "tangible, measurable results, it recharges by seeing concrete progress it can point to",
+  Air:   "ideas and exchange, it recharges through conversation, comparison, and new information",
+  Water: "emotional resonance, it recharges by feeling genuinely understood, not just heard"
+};
+const MODALITY_TEXT = {
+  Cardinal: "it starts things, new chapters, new attempts, new versions of the effort, often before it feels fully ready",
+  Fixed:    "it commits and holds, once a direction is chosen, it doesn't budge easily, for better and for worse",
+  Mutable:  "it adapts and adjusts, the approach shifts fluidly depending on circumstances, sometimes at the cost of consistency"
+};
+
+function composeSignExpression(planetId, sign, domainPhrase){
+  const prof = SIGN_PROFILE[sign];
+  const elementText = ELEMENT_TEXT[prof.element];
+  const modalityText = MODALITY_TEXT[prof.modality];
+  const corePhrase = prof.core.split(',')[0];
+  const p1 = `${planetId} governs ${domainPhrase}. In ${sign}, a ${prof.modality.toLowerCase()} ${prof.element.toLowerCase()} sign, that governing style plays out very specifically: ${prof.core}.`;
+  const p2 = `Because ${sign} is a ${prof.element} sign, ${planetId}'s expression here runs on ${elementText}. And because it's ${prof.modality}, ${modalityText}.`;
+  const p3 = `Put together: this isn't ${planetId} in the abstract, it's ${planetId} filtered through a sign that ${corePhrase}, so expect its themes to show up in exactly that register before anything else touches it.`;
+  return `<p>${p1}</p><p>${p2}</p><p>${p3}</p>`;
+}
+
+const PLANETS = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+const PLANET_GLYPH = {Sun:"☉",Moon:"☽",Mercury:"☿",Venus:"♀",Mars:"♂",Jupiter:"♃",Saturn:"♄",Uranus:"♅",Neptune:"♆",Pluto:"♇",
+  "North Node":"☊","South Node":"☋",Ascendant:"ASC",Midheaven:"MC",Chiron:"⚷",Fortune:"⊗",Spirit:"⊕",Eros:"❦"};
+const PLANET_KEYWORDS = {
+  Sun:"identity, vitality, and conscious will, who you're becoming",
+  Moon:"emotional need, instinct, and what makes you feel safe",
+  Mercury:"thought, perception, and how you process and communicate",
+  Venus:"what you value, what you're drawn to, and how you connect",
+  Mars:"drive, assertion, and how you go after what you want",
+  Jupiter:"expansion, meaning-making, and where you seek growth",
+  Saturn:"structure, responsibility, and where you build discipline",
+  Uranus:"independence, disruption, and sudden insight",
+  Neptune:"imagination, dissolution, and idealism",
+  Pluto:"transformation, power, and what runs at the depths"
+};
+const POINT_KEYWORDS = {
+  "North Node":"the direction you're growing toward, unfamiliar, but where development points",
+  "South Node":"the comfort zone, the innate talent you default to",
+  "Ascendant":"the instinctive front you present when meeting the world",
+  "Midheaven":"your public role and sense of direction out in the world",
+  "Chiron":"the core wound, and the gift that grows out of tending it",
+  "Fortune":"body, material circumstance, and the events that happen to you, see the Lots page for the full calculation",
+  "Spirit":"willpower and the actions you deliberately take, Fortune's mirror, see the Lots page for the full calculation",
+  "Eros":"desire and what pulls you toward closeness, see the Lots page for the full calculation"
+};
+const OPTIONAL_POINTS = ["North Node","South Node","Ascendant","Midheaven","Chiron","Fortune","Spirit","Eros"];
+
+const MODERN_RULERS = {
+  Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",
+  Libra:"Venus",Scorpio:"Pluto",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Uranus",Pisces:"Neptune"
+};
+const TRAD_RULERS = {
+  Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",
+  Libra:"Venus",Scorpio:"Mars",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Saturn",Pisces:"Jupiter"
+};
+
+const EXAMPLE_CHART = {
+  Sun:"Cancer", Moon:"Libra", Mercury:"Cancer", Venus:"Cancer", Mars:"Leo",
+  Jupiter:"Taurus", Saturn:"Leo", Uranus:"Scorpio", Neptune:"Sagittarius", Pluto:"Libra"
+};
+const EXAMPLE_POINTS = { "North Node":"Scorpio", "Fortune":"Sagittarius", "Spirit":"Gemini", "Eros":"Libra", "Ascendant":"Virgo" };
+const EXAMPLE_RETRO = ["Uranus","Neptune"]; // Uranus and Neptune are retrograde in the reference chart, not hypothetical.
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+function normDeg(d){ let x=d%360; if(x<0)x+=360; return x; }
+function signOfLon(lon){ return SIGNS[Math.floor(normDeg(lon)/30)%12]; }
+
+// Convert the shared chart's decimal longitudes into this page's sign-dropdown format, deriving
+// Fortune/Spirit/Eros the same sect-aware way Lots does, so "Load my chart" can populate the
+// same fields EXAMPLE_CHART/EXAMPLE_POINTS/EXAMPLE_RETRO already populate.
+function sharedAsExample(){
+  if(!SHARED) return null;
+  const P = SHARED.points;
+  const isDay = SHARED.sect === 'day';
+  const spirit = isDay ? normDeg(P.Ascendant+P.Sun-P.Moon) : normDeg(P.Ascendant+P.Moon-P.Sun);
+  const fortune = isDay ? normDeg(P.Ascendant+P.Moon-P.Sun) : normDeg(P.Ascendant+P.Sun-P.Moon);
+  const eros = isDay ? normDeg(P.Ascendant+P.Venus-spirit) : normDeg(P.Ascendant+spirit-P.Venus);
+  const chart = {};
+  PLANETS.forEach(p=> chart[p] = signOfLon(P[p]));
+  const points = {
+    'North Node': signOfLon(P.NorthNode), 'Fortune': signOfLon(fortune),
+    'Spirit': signOfLon(spirit), 'Eros': signOfLon(eros), 'Ascendant': signOfLon(P.Ascendant)
+  };
+  const retro = PLANETS.filter(p=> SHARED.retrograde && SHARED.retrograde[p]);
+  return { chart, points, retro, sect: SHARED.sect || 'night', name: SHARED.name };
+}
+
+/* ---------------- essential dignity (ported from lots.html, generalized for rulerSystem) ---------------- */
+const EXALTATION = {Sun:'Aries',Moon:'Taurus',Mercury:'Virgo',Venus:'Pisces',Mars:'Capricorn',Jupiter:'Cancer',Saturn:'Libra'};
+function oppositeSign(sign){ const idx=SIGNS.indexOf(sign); return SIGNS[(idx+6)%12]; }
+function domicileTable(rulers){
+  const d = {};
+  Object.keys(rulers).forEach(sign=>{ const p=rulers[sign]; if(!d[p])d[p]=[]; d[p].push(sign); });
+  return d;
+}
+// Domicile comes from whichever ruler table is active, so Uranus/Neptune/Pluto only get a domicile
+// badge under modern rulership. Exaltation/detriment/fall stay on the classical seven-planet table,
+// there's no real consensus placement for the outer planets on those.
+function dignityOf(planet, sign, system){
+  const dom = domicileTable(system === 'modern' ? MODERN_RULERS : TRAD_RULERS);
+  if(dom[planet] && dom[planet].includes(sign)) return 'domicile';
+  if(EXALTATION[planet] === sign) return 'exaltation';
+  if(dom[planet] && dom[planet].map(oppositeSign).includes(sign)) return 'detriment';
+  if(EXALTATION[planet] && oppositeSign(EXALTATION[planet]) === sign) return 'fall';
+  return 'peregrine';
+}
+const DIGNITY_BLURB = {
+  domicile:"strong and at home here, comfortable operating on its own terms",
+  exaltation:"elevated and confident here, performing at its best",
+  detriment:"working against the grain here, has to work harder to express cleanly",
+  fall:"weakened here, its usual strengths are hard to access",
+  peregrine:"in neutral territory, no special strength or struggle from sign placement alone"
+};
+const CLASSICAL_SEVEN = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn'];
+function showsDignity(id, system){
+  if(CLASSICAL_SEVEN.includes(id)) return true;
+  return system === 'modern' && ['Uranus','Neptune','Pluto'].includes(id);
+}
+
+/* ---------------- whole-sign houses (ported from lots.html) ---------------- */
+const HOUSE_MEANINGS = {
+  1:"the body, appearance, and how you initiate, the house of self",
+  2:"resources, income, and what you consider valuable enough to hold onto",
+  3:"communication, siblings, short trips, and everyday learning",
+  4:"home, family roots, and your private foundation",
+  5:"creativity, romance, children, and what you do for pleasure",
+  6:"daily work, health routines, and service to others",
+  7:"partnership, marriage, open contracts, and significant others",
+  8:"shared resources, intimacy, transformation, and what's inherited or entangled with others",
+  9:"belief, higher education, long travel, and the search for meaning",
+  10:"career, public reputation, and the role you're known for",
+  11:"friendship, community, and hopes for the future",
+  12:"the unconscious, isolation, endings, and what stays hidden"
+};
+const HOUSE_CONCRETE = {
+  1:"your body and physical vitality, the first impression you make, the instinctive way you start anything new",
+  2:"your income and bank balance, the possessions you keep, how tightly your sense of worth is tied to what you own",
+  3:"your siblings, your texts and emails, your commute, the offhand way you talk day to day",
+  4:"your childhood home, your parents, the property you live in now, the domestic patterns you inherited without choosing them",
+  5:"dating and romance, creative projects you actually finish, children, the risks you take for the fun of it",
+  6:"your job's daily grind, health routines, pets, the coworkers and small tasks that fill an ordinary Tuesday",
+  7:"your marriage or committed partner, business partners, and, less comfortably, your open rivals",
+  8:"shared money (joint accounts, debt, inheritance), sex, therapy, and whatever gets entangled with someone else's resources",
+  9:"travel abroad, higher education, publishing, in-laws, and the belief system you build your worldview on",
+  10:"your career trajectory, your boss and public reputation, the role strangers would use to describe you",
+  11:"your friend groups, the organizations you belong to, long-range goals, and the causes you attach hope to",
+  12:"solitude, hospitals and institutions, secrets, including the ones you keep from yourself"
+};
+const HOUSE_QUADRANT = {1:'angular',4:'angular',7:'angular',10:'angular', 2:'succedent',5:'succedent',8:'succedent',11:'succedent', 3:'cadent',6:'cadent',9:'cadent',12:'cadent'};
+const QUADRANT_TEXT = {
+  angular:"This is an angular house, themes here tend to show up as visible, nameable events rather than a slow drift.",
+  succedent:"This is a succedent house, themes here build gradually, as something accumulated or maintained over time rather than a single moment.",
+  cadent:"This is a cadent house, themes here run mental and behind-the-scenes, often understood in hindsight more than experienced in the moment."
+};
+
+/* ---------------- sect (day/night) ---------------- */
+const SECT_DAY_PLANETS = ['Sun','Jupiter','Saturn'];
+const SECT_NIGHT_PLANETS = ['Moon','Venus','Mars'];
+function sectInfo(planet, sect){
+  if(planet === 'Mercury'){
+    return { applicable:true, text:"Mercury is sect-neutral in most traditional treatments, it joins whichever luminary's sect it's more closely aligned with. Without an exact solar distance entered here, it's treated as adapting rather than fixed to one side." };
+  }
+  const isDayPlanet = SECT_DAY_PLANETS.includes(planet);
+  const isNightPlanet = SECT_NIGHT_PLANETS.includes(planet);
+  if(!isDayPlanet && !isNightPlanet) return { applicable:false };
+  const chartIsDay = sect === 'day';
+  const inSect = (chartIsDay && isDayPlanet) || (!chartIsDay && isNightPlanet);
+  const isMalefic = planet === 'Saturn' || planet === 'Mars';
+  const isBenefic = planet === 'Jupiter' || planet === 'Venus';
+  let text;
+  if(inSect){
+    text = `${planet} is of this chart's sect, a ${chartIsDay ? 'day' : 'night'} chart, which traditionally means it operates closer to its best behavior here${isMalefic ? ", less harsh than it would be in a chart of the opposite sect" : isBenefic ? ", giving its help more freely and without qualification" : ""}.`;
+  } else {
+    text = `${planet} is contrary to this chart's sect, a ${chartIsDay ? 'day' : 'night'} chart${isMalefic ? `, which makes it the <b style="color:var(--gold);">malefic contrary to sect</b>, classically the harsher and less cooperative of the two malefics in a chart of this sect` : isBenefic ? `, which makes it the benefic contrary to sect, still helpful but with more friction attached than the in-sect benefic` : ""}.`;
+  }
+  return { applicable:true, inSect, isMalefic, isBenefic, text };
+}
+
+/* ---------------- state ---------------- */
+let rulerSystem = "modern"; // or "traditional"
+let chartData = {};   // planet -> sign
+let pointData = {};   // point name -> {enabled, sign}
+let retroData = {};   // planet -> bool
+let sectVal = "night"; // or "day"
+let graph = null;     // computed layout result
+let selectedNodeId = null;
+
+/* ---------------- build input fields ---------------- */
+const planetFieldsEl = document.getElementById('planetFields');
+PLANETS.forEach(p=>{
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.innerHTML = `
+    <label><span class="glyph">${PLANET_GLYPH[p]}</span>${p}</label>
+    <select data-planet="${p}">
+      <option value="">–</option>
+      ${SIGNS.map(s=>`<option value="${s}">${s}</option>`).join('')}
+    </select>
+    <label class="retro-check" title="Retrograde"><input type="checkbox" data-retro="${p}">R</label>
+  `;
+  planetFieldsEl.appendChild(row);
+});
+
+const pointFieldsEl = document.getElementById('pointFields');
+OPTIONAL_POINTS.forEach(p=>{
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.innerHTML = `
+    <label class="point-check"><input type="checkbox" data-point-enable="${p}"><span class="glyph">${PLANET_GLYPH[p]}</span>${p}</label>
+    <select data-point="${p}" disabled>
+      <option value="">–</option>
+      ${SIGNS.map(s=>`<option value="${s}">${s}</option>`).join('')}
+    </select>
+  `;
+  pointFieldsEl.appendChild(row);
+});
+pointFieldsEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+  cb.addEventListener('change', e=>{
+    const name = e.target.getAttribute('data-point-enable');
+    const sel = pointFieldsEl.querySelector(`select[data-point="${name}"]`);
+    sel.disabled = !e.target.checked;
+  });
+});
+
+/* ---------------- ruler toggle ---------------- */
+document.getElementById('btnModern').addEventListener('click', ()=>{
+  rulerSystem = 'modern';
+  document.getElementById('btnModern').classList.add('active');
+  document.getElementById('btnTrad').classList.remove('active');
+  if(graph) render();
+});
+document.getElementById('btnTrad').addEventListener('click', ()=>{
+  rulerSystem = 'traditional';
+  document.getElementById('btnTrad').classList.add('active');
+  document.getElementById('btnModern').classList.remove('active');
+  if(graph) render();
+});
+
+/* ---------------- sect toggle ---------------- */
+document.getElementById('btnSectDay').addEventListener('click', ()=> setSect('day'));
+document.getElementById('btnSectNight').addEventListener('click', ()=> setSect('night'));
+function setSect(sect){
+  sectVal = sect;
+  document.getElementById('btnSectDay').classList.toggle('active', sect==='day');
+  document.getElementById('btnSectNight').classList.toggle('active', sect==='night');
+  if(graph) render();
+}
+
+/* ---------------- example loader (prefers a saved chart from Birth Data, falls back to the built-in reference chart) ---------------- */
+function loadIntoForm(chart, points, retro, sect){
+  PLANETS.forEach(p=>{
+    const sel = planetFieldsEl.querySelector(`select[data-planet="${p}"]`);
+    sel.value = chart[p];
+  });
+  Object.keys(points).forEach(p=>{
+    if(!OPTIONAL_POINTS.includes(p)) return;
+    const cb = pointFieldsEl.querySelector(`input[data-point-enable="${p}"]`);
+    const sel = pointFieldsEl.querySelector(`select[data-point="${p}"]`);
+    cb.checked = true;
+    sel.disabled = false;
+    sel.value = points[p];
+  });
+  PLANETS.forEach(p=>{
+    const retroCb = planetFieldsEl.querySelector(`input[data-retro="${p}"]`);
+    if(retroCb) retroCb.checked = retro.includes(p);
+  });
+  setSect(sect);
+  buildAndRender();
+}
+
+document.getElementById('btnExample').addEventListener('click', ()=>{
+  const shared = sharedAsExample();
+  if(shared) loadIntoForm(shared.chart, shared.points, shared.retro, shared.sect);
+  else loadIntoForm(EXAMPLE_CHART, EXAMPLE_POINTS, EXAMPLE_RETRO, 'day');
+});
+if(SHARED){
+  document.getElementById('btnExample').textContent = `Load ${SHARED.name || 'my'} chart`;
+}
+
+document.getElementById('btnBuild').addEventListener('click', buildAndRender);
+
+/* ---------------- core graph logic ---------------- */
+function getRulers(){ return rulerSystem === 'modern' ? MODERN_RULERS : TRAD_RULERS; }
+
+function readInputs(){
+  chartData = {};
+  let complete = true;
+  PLANETS.forEach(p=>{
+    const sel = planetFieldsEl.querySelector(`select[data-planet="${p}"]`);
+    chartData[p] = sel.value;
+    if(!sel.value) complete = false;
+  });
+  pointData = {};
+  OPTIONAL_POINTS.forEach(p=>{
+    const cb = pointFieldsEl.querySelector(`input[data-point-enable="${p}"]`);
+    const sel = pointFieldsEl.querySelector(`select[data-point="${p}"]`);
+    if(cb.checked && sel.value){
+      pointData[p] = sel.value;
+    }
+  });
+  retroData = {};
+  PLANETS.forEach(p=>{
+    const cb = planetFieldsEl.querySelector(`input[data-retro="${p}"]`);
+    retroData[p] = !!(cb && cb.checked);
+  });
+  return complete;
+}
+
+function buildAndRender(){
+  const complete = readInputs();
+  if(!complete){
+    document.getElementById('svgHost').innerHTML = '<div class="empty-state" id="emptyState">Fill in all ten planets, then press <b style="color:var(--text-dim)">Build tree</b> to see the chain.</div>';
+    document.getElementById('finalLine').innerHTML = 'Final dispositor: <b>None yet</b>';
+    document.getElementById('receptLine').innerHTML = 'Mutual receptions: <b>None yet</b>';
+    document.getElementById('synthesisBox').innerHTML = '';
+    graph = null;
+    selectedNodeId = null;
+    renderDetail(null);
+    return;
+  }
+  render();
+}
+
+function computeGraph(){
+  const rulers = getRulers();
+  // edges: planet -> ruler(sign[planet])
+  const edgeTo = {};
+  PLANETS.forEach(p=>{ edgeTo[p] = rulers[chartData[p]]; });
+
+  // cycle detection over functional graph
+  const state = {}; // 0 unvisited, 1 visiting, 2 done
+  const cycleSet = new Set();
+  PLANETS.forEach(p=> state[p]=0);
+
+  PLANETS.forEach(start=>{
+    if(state[start] !== 0) return;
+    const path = [];
+    let node = start;
+    while(true){
+      if(state[node] === 1){
+        // found a cycle: from node's index in path to end
+        const idx = path.indexOf(node);
+        for(let i=idx;i<path.length;i++) cycleSet.add(path[i]);
+        break;
+      }
+      if(state[node] === 2) break;
+      state[node] = 1;
+      path.push(node);
+      node = edgeTo[node];
+    }
+    path.forEach(n=>{ if(state[n]===1) state[n]=2; });
+  });
+
+  // children map (reverse edges) among planets
+  // exclude edges that stay *inside* a cycle (self-loop, or mutual-reception pair),
+  // those are drawn as loop edges, not tree edges, or weight() would recurse forever.
+  const children = {};
+  PLANETS.forEach(p=> children[p] = []);
+  PLANETS.forEach(p=>{
+    if(cycleSet.has(p) && cycleSet.has(edgeTo[p])) return;
+    children[edgeTo[p]].push(p);
+  });
+
+  // attach optional points as extra children of their ruling planet
+  const pointChildren = {}; // planet -> [pointNames]
+  PLANETS.forEach(p=> pointChildren[p] = []);
+  Object.keys(pointData).forEach(ptName=>{
+    const sign = pointData[ptName];
+    const ruler = rulers[sign];
+    if(ruler) pointChildren[ruler].push(ptName);
+  });
+
+  // classify cycle type
+  let finalDispositors = [];
+  let mutualReceptionGroups = [];
+  if(cycleSet.size){
+    // group cycle nodes by following edges to find connected cycle components
+    const visited = new Set();
+    cycleSet.forEach(n=>{
+      if(visited.has(n)) return;
+      const group = [];
+      let cur = n;
+      do{
+        group.push(cur);
+        visited.add(cur);
+        cur = edgeTo[cur];
+      } while(cur !== n);
+      if(group.length === 1) finalDispositors.push(group[0]);
+      else mutualReceptionGroups.push(group);
+    });
+  }
+
+  // depth of each node = hops to reach a cycle node (0 for cycle nodes themselves)
+  const depth = {};
+  PLANETS.forEach(p=>{
+    let d = 0, cur = p;
+    while(!cycleSet.has(cur)){ cur = edgeTo[cur]; d++; }
+    depth[p] = d;
+  });
+
+  // subtree weight (leaf-count) for angular layout, computed via postorder from roots
+  const weight = {};
+  function computeWeight(node){
+    let w = pointChildren[node].length; // each point counts as a leaf unit
+    const kids = children[node];
+    if(kids.length === 0 && w === 0) w = 1; // planet itself is a leaf unit if no children
+    kids.forEach(k=>{ w += computeWeight(k); });
+    weight[node] = w;
+    return w;
+  }
+  // roots = cycle members
+  const roots = [...cycleSet];
+  roots.forEach(r=> computeWeight(r));
+
+  // layout: assign angle ranges recursively, radius by depth
+  const RING_GAP = 118;
+  const RECEPTION_ROOT_R = 46;
+  const positions = {}; // id -> {x,y, kind, planetOrPoint}
+  const edges = []; // {from,to,isPoint}
+
+  function place(node, angleStart, angleEnd, depthLevel, rootR){
+    const angle = (angleStart+angleEnd)/2;
+    const r = depthLevel === 0 ? rootR : depthLevel*RING_GAP;
+    const rad = (angle-90) * Math.PI/180;
+    positions[node] = { x: Math.cos(rad)*r, y: Math.sin(rad)*r, kind:'planet', depth:depthLevel };
+
+    const kids = children[node];
+    const pts = pointChildren[node];
+    const totalUnits = kids.reduce((s,k)=>s+weight[k],0) + pts.length;
+    let a = angleStart;
+    if(totalUnits === 0) return;
+    kids.forEach(k=>{
+      const span = (angleEnd-angleStart) * (weight[k]/totalUnits);
+      place(k, a, a+span, depthLevel+1, rootR);
+      edges.push({from:k, to:node, isPoint:false});
+      a += span;
+    });
+    pts.forEach(ptName=>{
+      const span = (angleEnd-angleStart) * (1/totalUnits);
+      const angle2 = a + span/2;
+      const r2 = (depthLevel+1)*RING_GAP;
+      const rad2 = (angle2-90) * Math.PI/180;
+      positions[ptName] = { x: Math.cos(rad2)*r2, y: Math.sin(rad2)*r2, kind:'point', depth:depthLevel+1 };
+      edges.push({from:ptName, to:node, isPoint:true});
+      a += span;
+    });
+  }
+
+  // build root groups: each final dispositor is its own singleton group (radius 0),
+  // each mutual-reception cluster is a group sharing a small shared radius.
+  const rootGroups = [];
+  finalDispositors.forEach(fd => rootGroups.push({ type:'final', members:[fd], r:0 }));
+  mutualReceptionGroups.forEach(g => rootGroups.push({ type:'reception', members:g, r:RECEPTION_ROOT_R }));
+
+  const totalW = rootGroups.reduce((s,g)=> s + g.members.reduce((s2,m)=>s2+weight[m],0), 0) || 1;
+  let aCursor = 0;
+  rootGroups.forEach(g=>{
+    const groupW = g.members.reduce((s2,m)=>s2+weight[m],0) || 1;
+    const groupSpan = 360 * (groupW/totalW);
+    let a2 = aCursor;
+    g.members.forEach(m=>{
+      const span = groupSpan * (weight[m]/groupW);
+      place(m, a2, a2+span, 0, g.r);
+      a2 += span;
+    });
+    aCursor += groupSpan;
+  });
+
+  // connect the mutual-reception ring edges between each group's members
+  mutualReceptionGroups.forEach(group=>{
+    group.forEach(n=>{
+      edges.push({from:n, to:edgeTo[n], isPoint:false, isReception:true});
+    });
+  });
+
+  return {
+    edgeTo, cycleSet, children, pointChildren, finalDispositors, mutualReceptionGroups,
+    depth, weight, positions, edges, rulers
+  };
+}
+
+/* ---------------- synthesis summary ---------------- */
+function buildSynthesis(){
+  const g = graph;
+  const parts = [];
+
+  if(g.finalDispositors.length === 1){
+    const fd = g.finalDispositors[0];
+    const direct = [...(g.children[fd]||[]), ...(g.pointChildren[fd]||[])];
+    const totalPoints = PLANETS.length + Object.keys(pointData).length;
+    parts.push(`Every point in this chart, all ${totalPoints} of them, eventually funnels to <b style="color:var(--gold)">${fd}</b>. ${direct.length ? direct.join(', ') + ' feed into it directly' : 'Nothing feeds into it directly'}; everything else arrives after one or more hops through other planets. Since ${fd} answers to no one, its themes (${PLANET_KEYWORDS[fd].split(', ')[0]}) color the whole chart's underlying logic, not just its own placement.`);
+  } else if(g.finalDispositors.length > 1){
+    parts.push(`This chart splits into ${g.finalDispositors.length} independent branches, each with its own final dispositor: <b style="color:var(--gold)">${g.finalDispositors.join(', ')}</b>. Rather than one root running everything, these themes operate somewhat separately from each other.`);
+  }
+
+  if(g.mutualReceptionGroups.length){
+    const label = g.mutualReceptionGroups.length===1 ? 'One pair' : g.mutualReceptionGroups.length+' pairs';
+    parts.push(`${label} of planets sit in mutual reception (<b style="color:var(--teal)">${g.mutualReceptionGroups.map(gr=>gr.join(' & ')).join(', ')}</b>), instead of resolving further up the chain, that energy loops between them, each empowering the other rather than answering to anything else.`);
+  }
+
+  return parts.join(' ');
+}
+
+/* ---------------- rendering ---------------- */
+function render(){
+  graph = computeGraph();
+
+  // summary lines
+  const finalLine = document.getElementById('finalLine');
+  const receptLine = document.getElementById('receptLine');
+  if(graph.finalDispositors.length){
+    finalLine.innerHTML = 'Final dispositor: <b>' + graph.finalDispositors.map(p=>`${PLANET_GLYPH[p]} ${p}`).join(', ') + '</b>';
+  } else {
+    finalLine.innerHTML = 'Final dispositor: <b>none, resolves in a loop</b>';
+  }
+  if(graph.mutualReceptionGroups.length){
+    receptLine.innerHTML = 'Mutual receptions: <b>' + graph.mutualReceptionGroups.map(g=>g.join(' ↔ ')).join(' · ') + '</b>';
+  } else {
+    receptLine.innerHTML = 'Mutual receptions: <b>none</b>';
+  }
+
+  // chart ruler: the Ascendant's own dispositor, distinct from the whole-chart final dispositor
+  const chartRulerLine = document.getElementById('chartRulerLine');
+  const ascSign = pointData['Ascendant'];
+  if(ascSign){
+    const chartRuler = graph.rulers[ascSign];
+    chartRulerLine.innerHTML = `Chart ruler (Asc. dispositor, ${ascSign}): <b>${PLANET_GLYPH[chartRuler]||''} ${chartRuler}</b>`;
+  } else {
+    chartRulerLine.innerHTML = `Chart ruler (Asc. dispositor): <b style="color:var(--text-faint); font-weight:500;">enter your Ascendant under optional points to see this</b>`;
+  }
+
+  document.getElementById('synthesisBox').innerHTML = buildSynthesis();
+
+  // compute viewbox bounds
+  const allPos = Object.values(graph.positions);
+  const maxR = Math.max(...allPos.map(p=>Math.sqrt(p.x*p.x+p.y*p.y)), 1) + 60;
+  const vb = maxR*2;
+
+  let svg = `<svg id="mainSvg" viewBox="${-maxR} ${-maxR} ${vb} ${vb}" width="100%" height="100%" style="min-height:420px;">`;
+  svg += `<defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#454C78"/></marker>
+    <marker id="arrowFaint" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5C6088"/></marker>
+  </defs>`;
+
+  // edges
+  graph.edges.forEach(e=>{
+    const from = graph.positions[e.from], to = graph.positions[e.to];
+    if(!from || !to) return;
+    // shorten line so it doesn't overlap node circles
+    const dx = to.x-from.x, dy = to.y-from.y;
+    const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+    const nodeR = 30;
+    const x1 = from.x + (dx/dist)*nodeR;
+    const y1 = from.y + (dy/dist)*nodeR;
+    const x2 = to.x - (dx/dist)*(nodeR+6);
+    const y2 = to.y - (dy/dist)*(nodeR+6);
+    svg += `<line class="edge-line ${e.isPoint?'point-edge':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+  });
+
+  // final dispositor glow
+  graph.finalDispositors.forEach(p=>{
+    const pos = graph.positions[p];
+    svg += `<circle cx="${pos.x}" cy="${pos.y}" r="52" fill="url(#glow)" opacity="0.55"/>`;
+  });
+  svg += `<radialGradient id="glow"><stop offset="0%" stop-color="#D9A94E" stop-opacity="0.35"/><stop offset="100%" stop-color="#D9A94E" stop-opacity="0"/></radialGradient>`;
+
+  // nodes
+  const allIds = Object.keys(graph.positions);
+  allIds.forEach(id=>{
+    const pos = graph.positions[id];
+    const isPlanet = PLANETS.includes(id);
+    const isFinal = graph.finalDispositors.includes(id);
+    const isRecept = graph.mutualReceptionGroups.some(g=>g.includes(id));
+    let cls = 'node-circle';
+    if(!isPlanet) cls += ' point';
+    if(isFinal) cls += ' final';
+    if(isRecept) cls += ' recept';
+    if(selectedNodeId === id) cls += ' selected';
+    const glyph = PLANET_GLYPH[id] || id;
+    const sub = isPlanet ? (SIGN_ABBR[chartData[id]]||'') : (SIGN_ABBR[pointData[id]]||'');
+    svg += `<g class="node-g" data-id="${id}" style="cursor:pointer">
+      <circle class="${cls}" cx="${pos.x}" cy="${pos.y}" r="30"/>
+      <text class="node-glyph" x="${pos.x}" y="${pos.y-4}">${glyph}</text>
+      <text class="node-sublabel" x="${pos.x}" y="${pos.y+13}">${sub}</text>
+    </g>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById('svgHost').innerHTML = svg;
+
+  // attach click handlers
+  document.querySelectorAll('.node-g').forEach(g=>{
+    g.addEventListener('click', ()=>{
+      selectedNodeId = g.getAttribute('data-id');
+      render();
+      renderDetail(selectedNodeId);
+      document.querySelector('.detail-panel').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+
+  if(selectedNodeId) renderDetail(selectedNodeId);
+}
+
+/* ---------------- detail panel ---------------- */
+function chainFrom(id){
+  // returns ordered array of planet ids following the chain from id to its terminus (cycle)
+  const chain = [id];
+  let cur = id;
+  const seen = new Set([id]);
+  while(PLANETS.includes(cur)){
+    const next = graph.edgeTo[cur];
+    if(seen.has(next)){ chain.push(next); break; }
+    if(!PLANETS.includes(cur) || graph.cycleSet.has(cur)) break;
+    chain.push(next);
+    seen.add(next);
+    cur = next;
+  }
+  return chain;
+}
+
+function renderDetail(id){
+  const body = document.getElementById('detailBody');
+  if(!id || !graph){
+    body.className = 'detail-empty';
+    body.innerHTML = 'Tap a node in the chart above to read how it got there, what it means, and where the chain leads next.';
+    return;
+  }
+  body.className = '';
+  const isPlanet = PLANETS.includes(id);
+  const sign = isPlanet ? chartData[id] : pointData[id];
+  const ruler = graph.rulers[sign];
+  const isFinal = graph.finalDispositors.includes(id);
+  const isRecept = graph.mutualReceptionGroups.some(g=>g.includes(id));
+
+  let originText, meaningText, incomingText, nextText, chainHtml;
+
+  // origin (how we got here)
+  if(isPlanet){
+    originText = `${id} sits in ${sign}. In the ${rulerSystem} system, ${sign} is ruled by ${ruler}, so ${id}'s energy is "handed off" to ${ruler} in the chain of command.`;
+  } else {
+    originText = `${id} falls in ${sign}. ${sign} is ruled by ${ruler}, so this point's expression is filtered through wherever ${ruler} sits.`;
+  }
+
+  // meaning
+  const domain = isPlanet ? PLANET_KEYWORDS[id] : POINT_KEYWORDS[id];
+  meaningText = composeSignExpression(id, sign, domain);
+
+  // incoming (who disposits into this node)
+  if(isPlanet){
+    const incomingPlanets = graph.children[id] || [];
+    const incomingPoints = graph.pointChildren[id] || [];
+    const allIncoming = [...incomingPlanets, ...incomingPoints];
+    if(allIncoming.length){
+      incomingText = `${id} is also the dispositor for: ${allIncoming.join(', ')}. Their energy flows up through here on its way to the root of the chart.`;
+    } else {
+      incomingText = `Nothing else disposits into ${id}, it's a dead-end branch, receiving no other planet's energy.`;
+    }
+  } else {
+    incomingText = `${id} is a sensitive point, not a planet, so nothing disposits into it, it only feeds forward into the chain.`;
+  }
+
+  // next / where it's heading
+  if(isPlanet && isFinal){
+    nextText = `${id} sits in ${sign}, a sign it rules itself, the chain terminates here. This is a <b style="color:var(--gold)">final dispositor</b>: the root the whole chart's chain of command runs through. Its themes color the entire dispositor structure, not just its own placement.`;
+  } else if(isPlanet && isRecept){
+    const group = graph.mutualReceptionGroups.find(g=>g.includes(id));
+    const other = group.find(n=>n!==id) || group[0];
+    nextText = `${id} is in ${sign}, ruled by ${ruler}, and ${ruler} in turn sits in a sign ${id} rules. That's a <b style="color:var(--teal)">mutual reception</b>: instead of resolving to a single final point, the energy loops between ${group.join(' and ')} indefinitely, each empowering the other.`;
+  } else if(isPlanet){
+    nextText = `Next, the chain moves to ${ruler}. Follow it far enough and it resolves at ${graph.finalDispositors.length? graph.finalDispositors.join(', ') : (graph.mutualReceptionGroups.length ? 'a mutual reception loop between '+graph.mutualReceptionGroups.map(g=>g.join(' & ')).join(', ') : 'nothing yet')}.`;
+  } else {
+    nextText = `From here, follow ${ruler}'s own chain (tap it above) to see where this point's energy ultimately resolves.`;
+  }
+
+  // build chain strip
+  const chain = isPlanet ? chainFrom(id) : [id, ruler, ...chainFrom(ruler).slice(1)];
+  chainHtml = chain.map((n,i)=>{
+    const isLast = i === chain.length-1;
+    const finalCls = (isLast && (graph.finalDispositors.includes(n))) ? ' final' : '';
+    let out = `<span class="chip${finalCls}">${PLANET_GLYPH[n]||n} ${n}</span>`;
+    if(!isLast) out += `<span class="arrow">→</span>`;
+    return out;
+  }).join('');
+
+  // essential dignity (planets only, ported from lots.html and made rulership-aware)
+  let dignityHtml = '';
+  if(isPlanet && showsDignity(id, rulerSystem)){
+    const dignity = dignityOf(id, sign, rulerSystem);
+    const modernOnlyNote = ['Uranus','Neptune','Pluto'].includes(id)
+      ? `<p style="font-size:12px; color:var(--text-faint); margin-top:8px;">Modern rulership only, no classical dignity table covers ${id}. Only domicile applies, there's no real consensus placement for exaltation, detriment, or fall on the outer planets.</p>`
+      : '';
+    dignityHtml = `<div class="detail-section"><h3>Essential dignity</h3>
+      <div class="condition-box" style="align-items:flex-start; flex-direction:column; gap:8px;">
+        <span class="badge ${dignity==='domicile'||dignity==='exaltation'?'regard':(dignity==='detriment'||dignity==='fall'?'aversion':'')}" style="${dignity==='peregrine'?'background:var(--input-bg);color:var(--text-dim);border:1px solid var(--border);':''}">${dignity}</span>
+        <span style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">${id} in ${sign} is ${DIGNITY_BLURB[dignity]}.</span>
+        ${modernOnlyNote}
+      </div>
+    </div>`;
+  } else if(isPlanet){
+    dignityHtml = `<div class="detail-section"><h3>Essential dignity</h3>
+      <p style="color:var(--text-faint); font-size:13px;">${id} has no dignity reading under traditional rulership, switch to modern rulers to see its domicile status.</p>
+    </div>`;
+  }
+
+  // sect (planets only, day/night classification ported from the project's sect doctrine)
+  let sectHtml = '';
+  if(isPlanet){
+    const info = sectInfo(id, sectVal);
+    if(info.applicable) sectHtml = `<div class="detail-section"><h3>Sect</h3><p>${info.text}</p></div>`;
+  }
+
+  // retrograde (planets only; the mean lunar Node is always retrograde by definition and isn't offered
+  // a checkbox here for exactly that reason, so this never fires for it)
+  let retroHtml = '';
+  if(isPlanet && retroData[id]){
+    retroHtml = `<div class="detail-section"><h3>Retrograde</h3><p>${id} is retrograde in this chart, which traditionally suggests its themes run more toward revisiting, reviewing, or internally processing than initiating something new.</p></div>`;
+  }
+
+  // house placement (planets and points alike), gated on the Ascendant actually being entered
+  let houseHtml = '';
+  const ascSignForHouse = pointData['Ascendant'];
+  if(ascSignForHouse){
+    const ascIdx = SIGNS.indexOf(ascSignForHouse);
+    const nodeIdx = SIGNS.indexOf(sign);
+    const houseNum = ((nodeIdx - ascIdx + 12) % 12) + 1;
+    const quadrant = HOUSE_QUADRANT[houseNum];
+    const ord = houseNum===1?'st':houseNum===2?'nd':houseNum===3?'rd':'th';
+    houseHtml = `<div class="detail-section"><h3>Where it lands</h3>
+      <p>${id} falls in the <b style="color:var(--gold)">${houseNum}${ord} house</b> from this Ascendant, ${HOUSE_MEANINGS[houseNum]}.</p>
+      <p style="margin-top:10px;">${QUADRANT_TEXT[quadrant]}</p>
+      <p style="margin-top:10px;">Concretely, that's most likely to run through ${HOUSE_CONCRETE[houseNum]}.</p>
+    </div>`;
+  } else {
+    houseHtml = `<div class="detail-section"><h3>Where it lands</h3>
+      <p style="color:var(--text-faint); font-size:13px;">Enter your Ascendant under "Optional points" to see this node's whole-sign house placement.</p>
+    </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph">${PLANET_GLYPH[id]||id}</div>
+      <div>
+        <div class="detail-title">${id} <span class="in-sign">in ${sign}</span></div>
+        <div class="detail-tag">${isFinal ? 'Final dispositor' : isRecept ? 'Mutual reception' : isPlanet ? 'Planet' : 'Point'}${isPlanet && retroData[id] ? ' · Retrograde' : ''}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>How we got here</h3>
+      <p>${originText}</p>
+    </div>
+    ${dignityHtml}
+    ${sectHtml}
+    ${retroHtml}
+    <div class="detail-section">
+      <h3>What this placement means</h3>
+      ${meaningText}
+    </div>
+    ${houseHtml}
+    <div class="detail-section">
+      <h3>Flowing into this node</h3>
+      <p>${incomingText}</p>
+    </div>
+    <div class="detail-section">
+      <h3>Where the chain leads</h3>
+      <p>${nextText}</p>
+    </div>
+    <div class="detail-section">
+      <h3>Full chain from here</h3>
+      <div class="chain-strip">${chainHtml}</div>
+    </div>
+  `;
+}
+
+/* ---------------- init: auto-load a saved chart if one exists ---------------- */
+(function initFromShared(){
+  const note = document.getElementById('chartSourceNote');
+  if(SHARED){
+    note.innerHTML = `Auto-loaded <b>${SHARED.name || 'your saved chart'}</b> from <a href="birth-data.html">Birth Data</a>.`;
+    const shared = sharedAsExample();
+    loadIntoForm(shared.chart, shared.points, shared.retro, shared.sect);
+  } else {
+    note.innerHTML = `No chart saved yet, enter one below or <a href="birth-data.html">save one on Birth Data</a> to skip this step next time.`;
+  }
+})();
+</script>
+</body>
+</html>
