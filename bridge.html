@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --skyblue:#8FA8E0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--gold);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--skyblue); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:720px; line-height:1.65;}
+
+  .date-row{display:flex; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap;}
+  .date-row label{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint);}
+  .date-row input[type=date]{
+    background:var(--input-bg); color:var(--text); border:1px solid var(--border); border-radius:7px;
+    padding:7px 10px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+  }
+  .date-row input:focus{outline:2px solid var(--skyblue); outline-offset:1px;}
+  .date-row button{
+    font-family:'Inter'; font-size:12px; font-weight:600; padding:7px 12px; border-radius:8px;
+    cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-dim);
+  }
+  .date-row button:hover{color:var(--text); border-color:var(--text-faint);}
+  .date-row .asof{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--skyblue);}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:17px; margin:0 0 8px;}
+  .panel .hint{font-size:12.5px; color:var(--text-dim); line-height:1.65; margin-bottom:4px;}
+
+  .signal-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(210px,1fr)); gap:8px; margin-top:14px;}
+  .signal-item{background:var(--input-bg); border:1px solid var(--border); border-radius:8px; padding:9px 11px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
+  .signal-item b{color:var(--text); font-weight:600;}
+  .signal-item .snum{font-family:'IBM Plex Mono', monospace; color:var(--skyblue); margin-right:5px;}
+
+  .caveat-box{background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:12px 14px; margin-top:12px; font-size:12px; color:var(--text-dim); line-height:1.6;}
+  .caveat-box b{color:var(--gold);}
+
+  .conv-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:16px; margin:24px 0;}
+  .conv-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:22px;
+    cursor:pointer; transition:border-color .2s ease, transform .2s ease; position:relative; overflow:hidden;
+  }
+  .conv-card:hover{border-color:var(--card-color, var(--gold)); transform:translateY(-2px);}
+  .conv-card .cglow{position:absolute; top:-40px; right:-40px; width:140px; height:140px; border-radius:50%; background:var(--card-color, var(--gold)); opacity:0.12; filter:blur(30px);}
+  .conv-badge{
+    font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--card-color, var(--gold)); margin-bottom:10px; display:flex; align-items:center; gap:6px;
+  }
+  .conv-badge .pagecount{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:1px 8px; color:var(--text-dim);}
+  .conv-title{font-family:'Fraunces', serif; font-size:21px; font-weight:500; margin-bottom:8px; position:relative;}
+  .conv-summary{font-size:13.5px; color:var(--text-dim); line-height:1.65; position:relative;}
+  .conv-sources{display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; position:relative;}
+  .source-chip{font-family:'IBM Plex Mono', monospace; font-size:10px; padding:3px 9px; border-radius:12px; background:var(--input-bg); border:1px solid var(--border); color:var(--text-faint);}
+
+  .detail-panel{max-width:820px; margin:0 auto;}
+  .detail-empty{color:var(--text-faint); font-size:13px; line-height:1.6;}
+  .detail-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .detail-glyph{width:48px; height:48px; border-radius:50%; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:19px; font-family:'IBM Plex Mono', monospace; font-weight:700; flex-shrink:0;}
+  .detail-title{font-family:'Fraunces', serif; font-weight:500; font-size:22px;}
+  .detail-tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+  .detail-section{margin-bottom:26px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.08s;}
+  .detail-section:nth-of-type(3){animation-delay:.14s;}
+  .detail-section:nth-of-type(4){animation-delay:.20s;}
+  .detail-section:nth-of-type(5){animation-delay:.26s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--skyblue); margin:0 0 10px;}
+  .detail-section p{font-size:14.5px; line-height:1.85; color:var(--text); margin:0;}
+  .detail-section p + p{margin-top:12px;}
+
+  .fact-list{display:flex; flex-direction:column; gap:10px; margin-top:4px;}
+  .fact-item{
+    display:flex; gap:12px; align-items:flex-start; background:var(--input-bg); border:1px solid var(--border);
+    border-radius:9px; padding:12px 14px;
+  }
+  .fact-page{
+    font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+    color:#1a1406; background:var(--gold); border-radius:5px; padding:3px 7px; flex-shrink:0; white-space:nowrap; margin-top:1px;
+  }
+  .fact-text{font-size:13px; color:var(--text-dim); line-height:1.55;}
+  .fact-text a{color:var(--gold);}
+
+  .regress-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin-top:14px;}
+  .regress-card{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:14px;}
+  .regress-card.pass{border-color:var(--teal);}
+  .regress-card.fail{border-color:#E08585;}
+  .regress-card .rtitle{font-family:'Fraunces', serif; font-size:15px; color:var(--text); display:flex; align-items:center; gap:8px;}
+  .regress-card .rstatus{font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:10px;}
+  .regress-card.pass .rstatus{background:#16332C; color:var(--teal);}
+  .regress-card.fail .rstatus{background:#332020; color:#E08585;}
+  .regress-card p{font-size:12px; color:var(--text-dim); line-height:1.6; margin:8px 0 0;}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:10px;}
+  .chart-source-note a{color:var(--skyblue); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · The Bridge</div>
+    <h1>Where the pages actually agree</h1>
+    <p class="sub">Every other page here computes one technique in isolation. This one runs eleven independent signal types, every one of them already computed somewhere on this dashboard, against every planet, and flags anything three or more of them agree on. It's not three hand-picked stories anymore: it's a live tally, recomputed for whatever date you pick, that shows its work rather than asserting significance.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+    <div class="date-row">
+      <label for="asOfDate">As of</label>
+      <input type="date" id="asOfDate">
+      <button id="btnToday">Reset to today</button>
+      <span class="asof" id="asOfLabel"></span>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>How the tally works</h2>
+    <div class="hint">Eleven signal types, each already computed on its own page. A planet gets credit for a signal only when it clears a real, stated bar, not just "has a value." Three or more independent signal types agreeing is the threshold for a flag, a deliberately conservative bar, chosen so a flag means several genuinely different techniques converged, not just one loud one.</div>
+    <div class="signal-grid" id="signalGrid"></div>
+    <div class="caveat-box" id="caveatBox"></div>
+  </div>
+
+  <div class="conv-grid" id="convGrid"></div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Click any convergence above for the full cross-page breakdown.</div>
+  </div>
+
+  <div class="panel">
+    <h2>The bigger pattern</h2>
+    <p style="font-size:14px; line-height:1.85; color:var(--text-dim);" id="closingSynthesis"></p>
+  </div>
+
+  <div class="panel">
+    <h2>Numerology cross-references</h2>
+    <div class="hint">Numerology's own time-dividing techniques, Personal Year and Pinnacles, checked against this dashboard's astrology time-lord techniques for the date selected above, plus Life Path checked against the dispositor tree's final dispositor and the natal Sun as a third angle on "what's running this chart." These don't get folded into the eleven-signal tally above, numerology isn't one of that engine's eleven signal types, this is a separate, smaller comparison, exactly three checks, shown with its own honest agree-or-disagree read rather than forced into the same threshold math.</div>
+    <div class="signal-grid" id="numerologyHost"></div>
+  </div>
+
+  <footer>BRIDGE · a systematic cross-referencing engine, not three hand-picked stories · not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ================================================================
+   REFERENCE CHART (fictional demo chart: Jul 4 1976, 12:00 EDT, Philadelphia PA, day birth)
+   Duplicated per this project's own architecture: standalone files,
+   no shared imports, verified independently on each page.
+   ================================================================ */
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const TRAD_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Mars",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Saturn",Pisces:"Jupiter"};
+const MODERN_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Pluto",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Uranus",Pisces:"Neptune"};
+const EXALTATION = {Sun:'Aries',Moon:'Taurus',Mercury:'Virgo',Venus:'Pisces',Mars:'Capricorn',Jupiter:'Cancer',Saturn:'Libra'};
+const HOUSE_QUADRANT = {1:'angular',4:'angular',7:'angular',10:'angular', 2:'succedent',5:'succedent',8:'succedent',11:'succedent', 3:'cadent',6:'cadent',9:'cadent',12:'cadent'};
+const PLANET_GLYPH = {Sun:"☉",Moon:"☽",Mercury:"☿",Venus:"♀",Mars:"♂",Jupiter:"♃",Saturn:"♄",Uranus:"♅",Neptune:"♆",Pluto:"♇"};
+const PLANET_COLOR = {Sun:'#E0B84D',Moon:'#B7BEE0',Mercury:'#9FBF9F',Venus:'#E08FA8',Mars:'#D97757',Jupiter:'#C9A6E8',Saturn:'#8E8FBF',Uranus:'#7FB3D9',Neptune:'#6FA0C9',Pluto:'#B08F8F'};
+const PLANET_KEYWORDS = {
+  Sun:"identity, vitality, and conscious will", Moon:"emotional need, instinct, and what makes you feel safe",
+  Mercury:"thought, perception, and communication", Venus:"what you value and what you're drawn to",
+  Mars:"drive, assertion, and how you go after what you want", Jupiter:"expansion, meaning-making, and where you seek growth",
+  Saturn:"structure, responsibility, and where you build discipline", Uranus:"independence, disruption, and sudden insight",
+  Neptune:"imagination, dissolution, and idealism", Pluto:"transformation, power, and what runs at the depths"
+};
+
+const PLANETS = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+
+function norm(d){ let x=d%360; if(x<0)x+=360; return x; }
+function signOf(lon){ return SIGNS[Math.floor(norm(lon)/30)%12]; }
+function signIdx(lon){ return Math.floor(norm(lon)/30)%12; }
+function oppositeSign(sign){ const idx=SIGNS.indexOf(sign); return SIGNS[(idx+6)%12]; }
+function ordinal(n){ n=Math.round(n); return n+ (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th'); }
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+function addYears(date, years){ return new Date(date.getTime() + years*365.2425*24*3600*1000); }
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+function buildBirthDate(chart){
+  if(!chart.birthDate) return null;
+  const time = chart.birthTime || '12:00';
+  const offset = (chart.utcOffset && /^[+-]\d{2}:\d{2}$/.test(chart.utcOffset)) ? chart.utcOffset : 'Z';
+  const d = new Date(`${chart.birthDate}T${time}:00${offset}`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+const REFERENCE_ASC = 178.0992;
+const REFERENCE_LON = { Sun:102.7819, Moon:191.9738, Mercury:90.1404, Venus:107.3139, Mars:148.6073, Jupiter:52.8048, Saturn:123.3802, Uranus:213.0523, Neptune:251.7912, Pluto:188.9965 };
+const REFERENCE_RETROGRADE = ['Uranus','Neptune'];
+const REFERENCE_BIRTH = new Date('1976-07-04T12:00:00-04:00');
+const REFERENCE_SECT = 'day';
+
+const ASC = SHARED ? SHARED.points.Ascendant : REFERENCE_ASC;
+const LON = SHARED ? { Sun:SHARED.points.Sun, Moon:SHARED.points.Moon, Mercury:SHARED.points.Mercury, Venus:SHARED.points.Venus, Mars:SHARED.points.Mars, Jupiter:SHARED.points.Jupiter, Saturn:SHARED.points.Saturn, Uranus:SHARED.points.Uranus, Neptune:SHARED.points.Neptune, Pluto:SHARED.points.Pluto } : REFERENCE_LON;
+const BIRTH_RETROGRADE = SHARED ? Object.keys(SHARED.retrograde||{}).filter(p=>PLANETS.includes(p)) : REFERENCE_RETROGRADE;
+const BIRTH = SHARED ? (buildBirthDate(SHARED) || REFERENCE_BIRTH) : REFERENCE_BIRTH;
+const SECT = SHARED ? (SHARED.sect || 'night') : REFERENCE_SECT;
+const IS_DAY = SECT === 'day';
+
+// Live-anchored transiting-retrograde snapshot (same one Natal Chart uses), honestly scoped:
+// only applied to signal 10 when the chosen date is close to this anchor, not treated as a
+// live feed for arbitrary dates. This is real ephemeris data for one specific real date, so it
+// only makes sense for whichever chart this dashboard's reference date actually anchors, it's
+// skipped entirely for a saved chart, there's no live-sky snapshot on file for anyone else yet.
+const TRANSIT_RETRO_ANCHOR = new Date('2026-08-08T00:00:00Z');
+const TRANSIT_RETROGRADE = SHARED ? [] : ['Saturn','Neptune','Pluto'];
+
+/* ---------------- Hermetic lots + additional lots, sect-aware (mirrors Lots page's own formulas) ---------------- */
+const Fortune  = IS_DAY ? norm(ASC + LON.Moon - LON.Sun) : norm(ASC + LON.Sun - LON.Moon);
+const Spirit   = IS_DAY ? norm(ASC + LON.Sun - LON.Moon) : norm(ASC + LON.Moon - LON.Sun);
+const Eros     = IS_DAY ? norm(ASC + LON.Venus - Spirit) : norm(ASC + Spirit - LON.Venus);
+const Victory  = IS_DAY ? norm(ASC + LON.Jupiter - Spirit) : norm(ASC + Spirit - LON.Jupiter);
+const Necessity= IS_DAY ? norm(ASC + Fortune - LON.Mercury) : norm(ASC + LON.Mercury - Fortune);
+const Courage  = IS_DAY ? norm(ASC + Fortune - LON.Mars) : norm(ASC + LON.Mars - Fortune);
+const Nemesis  = IS_DAY ? norm(ASC + Fortune - LON.Saturn) : norm(ASC + LON.Saturn - Fortune);
+const HERMETIC_LOTS = { Fortune, Spirit, Eros, Victory, Necessity, Courage, Nemesis };
+
+// Additional lots: fixed (non-sect-reversed) formulas, verified on the Lots page, generalized
+// here to whatever chart is active. Marriage and Assets use whole-sign house cusps, see Lots
+// for the reconstruction that found this.
+const moonExaltLon = SIGNS.indexOf(EXALTATION.Moon)*30 + 3; // 3° Taurus, fixed classical fact
+function cuspLon(house){ return ((signIdx(ASC) + house - 1) % 12) * 30; }
+const ADDITIONAL_LOTS = {
+  Exaltation: norm(ASC + moonExaltLon - LON.Moon),
+  Father: norm(ASC + LON.Sun - LON.Saturn),
+  Mother: norm(ASC + LON.Venus - LON.Moon),
+  Children: norm(ASC + LON.Jupiter - LON.Saturn),
+  Siblings: norm(ASC + LON.Saturn - LON.Jupiter),
+  Marriage: norm(ASC + cuspLon(10) - LON.Venus),
+  Assets: norm(ASC + cuspLon(5) - LON.Jupiter),
+  Affairs: norm(ASC + LON.Venus - LON.Jupiter)
+};
+const ALL_LOTS = { ...HERMETIC_LOTS, ...ADDITIONAL_LOTS };
+
+/* ---------------- dignity ---------------- */
+function domicileTable(rulers){ const d={}; Object.keys(rulers).forEach(s=>{const p=rulers[s]; if(!d[p])d[p]=[]; d[p].push(s);}); return d; }
+function dignityOf(planet, sign, system){
+  const dom = domicileTable(system==='modern'?MODERN_RULERS:TRAD_RULERS);
+  if(dom[planet] && dom[planet].includes(sign)) return 'domicile';
+  if(EXALTATION[planet] === sign) return 'exaltation';
+  if(dom[planet] && dom[planet].map(oppositeSign).includes(sign)) return 'detriment';
+  if(EXALTATION[planet] && oppositeSign(EXALTATION[planet]) === sign) return 'fall';
+  return 'peregrine';
+}
+const DIGNITY_BLURB = {
+  domicile:"strong and at home", exaltation:"elevated and confident",
+  detriment:"working against the grain", fall:"weakened, its usual strengths hard to access",
+  peregrine:"in neutral territory"
+};
+
+/* ---------------- houses ---------------- */
+const ascIdx = signIdx(ASC);
+function houseOf(lon){ const idx = signIdx(lon); return ((idx-ascIdx+12)%12)+1; }
+
+/* ---------------- dispositor chain roles (mirrors Dispositor Tree's own algorithm) ---------------- */
+function computeDispositorRoles(system){
+  const rulers = system==='modern' ? MODERN_RULERS : TRAD_RULERS;
+  const edgeTo = {};
+  PLANETS.forEach(p=>{ edgeTo[p] = rulers[signOf(LON[p])]; });
+  const state = {}; const cycleSet = new Set();
+  PLANETS.forEach(p=>state[p]=0);
+  PLANETS.forEach(start=>{
+    if(state[start]!==0) return;
+    const path=[]; let node=start;
+    while(true){
+      if(state[node]===1){ const idx=path.indexOf(node); for(let i=idx;i<path.length;i++) cycleSet.add(path[i]); break; }
+      if(state[node]===2) break;
+      state[node]=1; path.push(node); node=edgeTo[node];
+    }
+    path.forEach(n=>{ if(state[n]===1) state[n]=2; });
+  });
+  let finals=[], receptions=[];
+  if(cycleSet.size){
+    const visited = new Set();
+    cycleSet.forEach(n=>{
+      if(visited.has(n)) return;
+      const group=[]; let cur=n;
+      do{ group.push(cur); visited.add(cur); cur=edgeTo[cur]; } while(cur!==n);
+      if(group.length===1) finals.push(group[0]); else receptions.push(group);
+    });
+  }
+  return { finals, receptions, edgeTo };
+}
+const ROLES_MODERN = computeDispositorRoles('modern');
+const ROLES_TRAD = computeDispositorRoles('traditional');
+
+/* ---------------- aspects (natal, static) ---------------- */
+function sep(a,b){ let d=Math.abs(a-b)%360; return d>180?360-d:d; }
+const ASPECTS = [
+  {name:'Conjunction', angle:0, orb:8}, {name:'Sextile', angle:60, orb:6},
+  {name:'Square', angle:90, orb:7}, {name:'Trine', angle:120, orb:8}, {name:'Opposition', angle:180, orb:8}
+];
+function computeAllAspects(){
+  const results = [];
+  for(let i=0;i<PLANETS.length;i++){
+    for(let j=i+1;j<PLANETS.length;j++){
+      const p1=PLANETS[i], p2=PLANETS[j];
+      const d = sep(LON[p1], LON[p2]);
+      let best=null, bestOrb=999;
+      ASPECTS.forEach(a=>{ const diff=Math.abs(d-a.angle); if(diff<=a.orb && diff<bestOrb){best=a;bestOrb=diff;} });
+      if(best) results.push({p1,p2,aspect:best.name,angle:best.angle,orb:bestOrb});
+    }
+  }
+  results.sort((a,b)=>a.orb-b.orb);
+  return results;
+}
+const ALL_ASPECTS = computeAllAspects();
+const TIGHT_ASPECT_BAR = 3; // degrees; "tight, clearly-felt orb"
+
+/* ---------------- lot rulership + aversion ---------------- */
+function isAversion(lon1, lon2){
+  const i1=signIdx(lon1), i2=signIdx(lon2);
+  const d0=Math.abs(i1-i2), d=Math.min(d0,12-d0);
+  return d===1||d===5;
+}
+function lotsRuledBy(planet, system){
+  const rulers = system==='modern' ? MODERN_RULERS : TRAD_RULERS;
+  return Object.keys(ALL_LOTS).filter(l => rulers[signOf(ALL_LOTS[l])] === planet);
+}
+
+/* ---------------- Annual Profections ---------------- */
+function computeProfection(date){
+  const ageNow = (date - BIRTH) / (365.2425*24*3600*1000);
+  const age = Math.floor(ageNow);
+  const sign = SIGNS[(ascIdx + age) % 12];
+  return { age, sign, lord: TRAD_RULERS[sign] };
+}
+
+/* ---------------- Firdaria ---------------- */
+const FIRDARIA_ORDER_NIGHT = ['Moon','Saturn','Jupiter','Mars','Sun','Venus','Mercury','North Node','South Node'];
+const FIRDARIA_ORDER_DAY = ['Sun','Venus','Mercury','Moon','Saturn','Jupiter','Mars','North Node','South Node'];
+const FIRDARIA_ORDER = SECT === 'day' ? FIRDARIA_ORDER_DAY : FIRDARIA_ORDER_NIGHT;
+const FIRDARIA_YEARS = {Moon:9,Saturn:11,Jupiter:12,Mars:7,Sun:10,Venus:8,Mercury:13,'North Node':3,'South Node':2};
+function computeFirdaria(date){
+  const ageNow = (date - BIRTH) / (365.2425*24*3600*1000);
+  let age = 0, major = null;
+  while(!major){
+    for(const p of FIRDARIA_ORDER){
+      const years = FIRDARIA_YEARS[p];
+      if(ageNow >= age && ageNow < age+years){ major = {planet:p, startAge:age, endAge:age+years}; break; }
+      age += years;
+    }
+  }
+  const startIdxInOrder = FIRDARIA_ORDER.indexOf(major.planet);
+  const subOrder = [...FIRDARIA_ORDER.slice(startIdxInOrder), ...FIRDARIA_ORDER.slice(0, startIdxInOrder)];
+  const majorYears = major.endAge - major.startAge;
+  let subCumulative = major.startAge, sub = null;
+  subOrder.forEach(sp=>{
+    const subYears = (FIRDARIA_YEARS[sp]/75) * majorYears;
+    if(ageNow >= subCumulative && ageNow < subCumulative+subYears) sub = sp;
+    subCumulative += subYears;
+  });
+  return { major, sub };
+}
+
+/* ---------------- Zodiacal Releasing ---------------- */
+const MINOR_YEARS = {Aries:15,Taurus:8,Gemini:20,Cancer:25,Leo:19,Virgo:20,Libra:8,Scorpio:15,Sagittarius:12,Capricorn:30,Aquarius:30,Pisces:12};
+function computeZR(date, startSign){
+  const ageNow = (date - BIRTH) / (365.2425*24*3600*1000);
+  let age = 0, i = 0, current = null;
+  const startIdx = SIGNS.indexOf(startSign);
+  while(!current){
+    const sign = SIGNS[(startIdx+i)%12];
+    const years = MINOR_YEARS[sign];
+    if(ageNow >= age && ageNow < age+years) current = {sign, startAge:age, endAge:age+years};
+    age += years; i++;
+  }
+  return { ...current, ruler: TRAD_RULERS[current.sign] };
+}
+
+/* ---------------- planetary returns ---------------- */
+const SATURN_PASSES = [
+  {label:'First approach, stations retrograde', date:'2026-07-26'},
+  {label:'Stations direct', date:'2026-12-10'},
+  {label:'Exact return', date:'2027-03-16'}
+];
+const RETURN_BODIES = [
+  { planet:'Jupiter', period:11.862 },
+  { planet:'Uranus', period:84.0107, half:true }
+];
+function computeReturnsStatus(date){
+  const hits = {};
+  // Saturn: verified 3-pass sequence
+  const passDates = SATURN_PASSES.map(p=>new Date(p.date+'T00:00:00Z'));
+  const first = passDates[0], last = passDates[passDates.length-1];
+  const inProgress = date >= first && date <= last;
+  const nearest = passDates.reduce((a,b)=> Math.abs(b-date)<Math.abs(a-date)?b:a);
+  const daysToNearest = Math.round((nearest-date)/(24*3600*1000));
+  if(inProgress || Math.abs(daysToNearest) <= 365){
+    hits.Saturn = inProgress
+      ? `The verified three-pass Saturn Return is in progress right now (${SATURN_PASSES.map(p=>p.date).join(' / ')}).`
+      : `A verified Saturn Return pass is ${Math.abs(daysToNearest)} days from this date.`;
+  }
+  // average-period bodies
+  RETURN_BODIES.forEach(rb=>{
+    const period = rb.half ? rb.period/2 : rb.period;
+    const ageAtDate = (date - BIRTH) / (365.2425*24*3600*1000);
+    const cyclesElapsed = Math.floor(ageAtDate/period);
+    const nextDate = new Date(BIRTH.getTime() + (cyclesElapsed+1)*period*365.2425*24*3600*1000);
+    const lastDate = cyclesElapsed>0 ? new Date(BIRTH.getTime() + cyclesElapsed*period*365.2425*24*3600*1000) : null;
+    const daysToNext = Math.round((nextDate-date)/(24*3600*1000));
+    const daysSinceLast = lastDate ? Math.round((date-lastDate)/(24*3600*1000)) : Infinity;
+    if(daysToNext <= 365) hits[rb.planet] = `${rb.planet}'s ${rb.half?'opposition':'return'} (average-period estimate) is ~${daysToNext} days away.`;
+    else if(daysSinceLast <= 365) hits[rb.planet] = `${rb.planet}'s ${rb.half?'opposition':'return'} (average-period estimate) was ~${daysSinceLast} days ago.`;
+  });
+  return hits;
+}
+
+/* ---------------- house rulership (mirrors house-rulership.html's own build()) ---------------- */
+// For each of the 12 whole-sign houses, find its ruler and where that ruler actually sits.
+// Group houses by that placement house: when several house-cusps' rulers converge on the same
+// house, that house is quietly running more of the chart than its own placement alone suggests.
+// Tried and rejected as the signal-11 criterion below: most charts cram their ten planets into a
+// small handful of occupied houses, so a raw 2-or-3-house cluster bar trips for nearly every
+// planet, not a useful filter. Kept here as data for the caveat-box citation text (computed live
+// per chart), the actual hit criterion is house self-rulership instead, see computeSelfRulingHouses().
+function computeHouseClusters(system){
+  const rulers = system==='modern' ? MODERN_RULERS : TRAD_RULERS;
+  const byPlacementHouse = {};
+  for(let h=1; h<=12; h++){
+    const sign = SIGNS[(ascIdx+h-1)%12];
+    const ruler = rulers[sign];
+    const rulerHouse = houseOf(LON[ruler]);
+    if(!byPlacementHouse[rulerHouse]) byPlacementHouse[rulerHouse] = [];
+    byPlacementHouse[rulerHouse].push(h);
+  }
+  return byPlacementHouse;
+}
+const HOUSE_CLUSTERS_MODERN = computeHouseClusters('modern');
+const HOUSE_CLUSTERS_TRAD = computeHouseClusters('traditional');
+
+// House self-rulership: a house whose cusp-sign's ruler physically sits in that same house,
+// the house-level equivalent of a planet in its own domicile. Genuinely rare in most charts
+// (the exact count is computed live per chart, see the caveat box), which is what makes it a
+// real signal rather than a near-universal one.
+function computeSelfRulingHouses(system){
+  const rulers = system==='modern' ? MODERN_RULERS : TRAD_RULERS;
+  const found = [];
+  for(let h=1; h<=12; h++){
+    const sign = SIGNS[(ascIdx+h-1)%12];
+    const ruler = rulers[sign];
+    if(houseOf(LON[ruler]) === h) found.push({ house:h, ruler, sign });
+  }
+  return found;
+}
+const SELF_RULING_MODERN = computeSelfRulingHouses('modern');
+const SELF_RULING_TRAD = computeSelfRulingHouses('traditional');
+
+/* ================================================================
+   THE ENGINE: eleven signal types, tallied per planet, for a given date
+   ================================================================ */
+const SIGNAL_META = [
+  {id:'dispositor', label:'Dispositor tree role', page:'Dispositor Tree'},
+  {id:'dignity',    label:'Essential dignity', page:'Natal Chart'},
+  {id:'house',      label:'Angular house', page:'Natal Chart'},
+  {id:'aspect',     label:'Tight aspect (≤3°)', page:'Aspects'},
+  {id:'lots',       label:'Rules 2+ lots', page:'Lots'},
+  {id:'profection', label:'Annual Profection Lord', page:'Time Lords'},
+  {id:'firdaria',   label:'Firdaria period ruler', page:'Time Lords'},
+  {id:'zr',         label:'Zodiacal Releasing ruler', page:'Time Lords'},
+  {id:'returns',    label:'Active/upcoming return', page:'Aspects'},
+  {id:'retrograde', label:'Retrograde (birth or now)', page:'Dispositor Tree / Natal Chart'},
+  {id:'houserule',  label:'Self-ruling house', page:'House Rulership'}
+];
+
+function computeConvergences(date){
+  const hitsByPlanet = {}; PLANETS.forEach(p=> hitsByPlanet[p] = []);
+
+  // 1. dispositor role
+  PLANETS.forEach(p=>{
+    if(ROLES_MODERN.finals.includes(p)) hitsByPlanet[p].push({id:'dispositor', page:'Dispositor Tree',
+      text:`${p} is the chart's single <b style="color:var(--gold);">final dispositor</b> under modern rulership, every one of the ten planets' chains eventually resolves here.`});
+    const modRecept = ROLES_MODERN.receptions.find(g=>g.includes(p));
+    if(modRecept) hitsByPlanet[p].push({id:'dispositor', page:'Dispositor Tree',
+      text:`${p} is in mutual reception with ${modRecept.find(n=>n!==p)} under modern rulership.`});
+    if(ROLES_TRAD.finals.includes(p)) hitsByPlanet[p].push({id:'dispositor', page:'Dispositor Tree',
+      text:`${p} is the chart's single final dispositor under traditional rulership.`});
+    const tradRecept = ROLES_TRAD.receptions.find(g=>g.includes(p));
+    if(tradRecept) hitsByPlanet[p].push({id:'dispositor', page:'Dispositor Tree',
+      text:`${p} is in <b style="color:var(--teal);">mutual reception</b> with ${tradRecept.find(n=>n!==p)} under traditional rulership, instead of resolving further up the chain, energy loops between them.`});
+  });
+
+  // 2. essential dignity (non-peregrine)
+  PLANETS.forEach(p=>{
+    const sign = signOf(LON[p]);
+    const dTrad = dignityOf(p, sign, 'traditional');
+    const dMod = dignityOf(p, sign, 'modern');
+    if(dTrad !== 'peregrine'){
+      hitsByPlanet[p].push({id:'dignity', page:'Natal Chart',
+        text:`${p} in ${sign} is in <b>${dTrad}</b>${dMod!==dTrad?` under traditional rulership (${dMod} under modern)`:''}, ${DIGNITY_BLURB[dTrad]}.`});
+    } else if(dMod !== 'peregrine'){
+      hitsByPlanet[p].push({id:'dignity', page:'Natal Chart',
+        text:`${p} in ${sign} is in <b>${dMod}</b> under modern rulership (no classical dignity table covers it traditionally), ${DIGNITY_BLURB[dMod]}.`});
+    }
+  });
+
+  // 3. angular house
+  PLANETS.forEach(p=>{
+    const house = houseOf(LON[p]);
+    const quadrant = HOUSE_QUADRANT[house];
+    if(quadrant === 'angular'){
+      hitsByPlanet[p].push({id:'house', page:'Natal Chart',
+        text:`${p} falls in the ${ordinal(house)} house, an <b>angular</b> house, themes here show up as visible, nameable events rather than a slow drift.`});
+    }
+  });
+
+  // 4. tight aspects
+  PLANETS.forEach(p=>{
+    const involved = ALL_ASPECTS.filter(a=>a.p1===p||a.p2===p);
+    if(!involved.length) return;
+    const tightest = involved.reduce((a,b)=>a.orb<b.orb?a:b);
+    if(tightest.orb <= TIGHT_ASPECT_BAR){
+      const other = tightest.p1===p ? tightest.p2 : tightest.p1;
+      const orbDeg = Math.floor(tightest.orb), orbMin = Math.round((tightest.orb-orbDeg)*60);
+      hitsByPlanet[p].push({id:'aspect', page:'Aspects',
+        text:`Natal ${p} is ${tightest.aspect.toLowerCase()} natal ${other} at a tight ${orbDeg}°${orbMin}' orb.`});
+    }
+  });
+
+  // 5. rules 2+ lots (Hermetic + additional), either rulership system
+  PLANETS.forEach(p=>{
+    const tradLots = lotsRuledBy(p, 'traditional');
+    const modLots = lotsRuledBy(p, 'modern');
+    const best = tradLots.length >= modLots.length ? {system:'traditional', lots:tradLots} : {system:'modern', lots:modLots};
+    if(best.lots.length >= 2){
+      hitsByPlanet[p].push({id:'lots', page:'Lots',
+        text:`${p} rules ${best.lots.length} of this chart's lots under ${best.system} rulership: <b>${best.lots.join(', ')}</b>.`});
+    }
+  });
+
+  // 6. Annual Profection Lord of the Year
+  const prof = computeProfection(date);
+  if(PLANETS.includes(prof.lord)){
+    hitsByPlanet[prof.lord].push({id:'profection', page:'Time Lords',
+      text:`${prof.lord} is the <b>Lord of the Year</b>, Annual Profections have profected to ${prof.sign} at age ${prof.age}.`});
+  }
+
+  // 7. Firdaria
+  const fird = computeFirdaria(date);
+  if(PLANETS.includes(fird.major.planet)){
+    hitsByPlanet[fird.major.planet].push({id:'firdaria', page:'Time Lords',
+      text:`${fird.major.planet} rules the current <b>Firdaria major period</b> (ages ${fird.major.startAge}–${fird.major.endAge}).`});
+  }
+  if(fird.sub && PLANETS.includes(fird.sub) && fird.sub !== fird.major.planet){
+    hitsByPlanet[fird.sub].push({id:'firdaria', page:'Time Lords',
+      text:`${fird.sub} rules the current Firdaria <b>sub-period</b> within the ${fird.major.planet} major period.`});
+  }
+
+  // 8. Zodiacal Releasing, from Fortune and from Spirit
+  const zrF = computeZR(date, signOf(Fortune));
+  const zrS = computeZR(date, signOf(Spirit));
+  if(PLANETS.includes(zrF.ruler)){
+    hitsByPlanet[zrF.ruler].push({id:'zr', page:'Time Lords',
+      text:`${zrF.ruler} rules the current Zodiacal Releasing period from Fortune (${zrF.sign}, ages ${zrF.startAge}–${zrF.endAge}).`});
+  }
+  if(PLANETS.includes(zrS.ruler)){
+    hitsByPlanet[zrS.ruler].push({id:'zr', page:'Time Lords',
+      text:`${zrS.ruler} rules the current Zodiacal Releasing period from Spirit (${zrS.sign}, ages ${zrS.startAge}–${zrS.endAge}).`});
+  }
+
+  // 9. planetary returns
+  const returns = computeReturnsStatus(date);
+  Object.keys(returns).forEach(p=>{
+    if(PLANETS.includes(p)) hitsByPlanet[p].push({id:'returns', page:'Aspects', text: returns[p]});
+  });
+
+  // 10. retrograde, birth and (if the date is near the live anchor) right now
+  PLANETS.forEach(p=>{
+    if(BIRTH_RETROGRADE.includes(p)){
+      hitsByPlanet[p].push({id:'retrograde', page:'Dispositor Tree',
+        text:`${p} was retrograde at birth.`});
+    }
+  });
+  const daysFromAnchor = Math.abs((date - TRANSIT_RETRO_ANCHOR)/(24*3600*1000));
+  if(daysFromAnchor <= 45){
+    TRANSIT_RETROGRADE.forEach(p=>{
+      if(PLANETS.includes(p)) hitsByPlanet[p].push({id:'retrograde', page:'Natal Chart',
+        text:`${p} is retrograde right now, per the live-anchored snapshot (${fmtDate(TRANSIT_RETRO_ANCHOR)}).`});
+    });
+  }
+
+  // 11. house self-rulership: this planet rules the sign on its own house's cusp, so it
+  // answers to nothing else for how that house's business gets run. Cross-references signal 3
+  // (angular house) and signal 2 (dignity) at the house level rather than the planet level.
+  [...SELF_RULING_MODERN, ...SELF_RULING_TRAD].forEach(sr=>{
+    const system = SELF_RULING_MODERN.includes(sr) ? 'modern' : 'traditional';
+    hitsByPlanet[sr.ruler].push({id:'houserule', page:'House Rulership',
+      text:`${sr.ruler} rules the ${ordinal(sr.house)} house's own sign (${sr.sign}) under ${system} rulership, and sits right there in the ${ordinal(sr.house)} house too. That house's affairs aren't outsourced anywhere else, they're self-contained, the house-level equivalent of a planet in its own domicile.`});
+  });
+
+  // tally: count DISTINCT signal categories per planet (not raw fact count)
+  const tally = PLANETS.map(p=>{
+    const hits = hitsByPlanet[p];
+    const categories = new Set(hits.map(h=>h.id));
+    return { planet:p, hits, count: categories.size, categories };
+  });
+  tally.sort((a,b)=>b.count-a.count);
+  return tally;
+}
+
+/* ---------------- structural synthesis between flagged planets ---------------- */
+function buildStructuralNote(flagged){
+  const names = flagged.map(f=>f.planet);
+  const notes = [];
+  // Aquarius stellium -> Uranus, modern rulership
+  const aquariusMembers = names.filter(p=> signOf(LON[p])==='Aquarius');
+  if(aquariusMembers.includes('Uranus') && aquariusMembers.length >= 3){
+    const others = aquariusMembers.filter(p=>p!=='Uranus');
+    notes.push(`${others.join(', ')}, and Uranus itself all sit together in Aquarius. Under modern rulership every one of them disposits <i>directly</i> to Uranus, one hop, since Uranus rules its own sign there. That single structural fact, a real stellium landing in its own dispositor's home sign, is most of why ${others.length+1} planets clear the bar together rather than by coincidence.`);
+  }
+  // Saturn/Mars reception
+  if(names.includes('Saturn') && names.includes('Mars')){
+    const recept = ROLES_TRAD.receptions.find(g=>g.includes('Saturn')&&g.includes('Mars'));
+    if(recept) notes.push(`Saturn and Mars are also each other's dispositor under traditional rulership, a mutual reception. Every planet that resolves traditionally resolves through this pair, which is a second, independent structural link connecting two of the flagged planets.`);
+  }
+  return notes;
+}
+
+/* ---------------- rendering ---------------- */
+let currentDate = new Date();
+let currentTally = [];
+
+function renderSignalGrid(){
+  document.getElementById('signalGrid').innerHTML = SIGNAL_META.map((s,i)=>
+    `<div class="signal-item"><span class="snum">${i+1}.</span><b>${s.label}</b> — ${s.page}</div>`
+  ).join('');
+  const aspectDenseCount = PLANETS.filter(p=> ALL_ASPECTS.some(a=>(a.p1===p||a.p2===p) && a.orb<=TIGHT_ASPECT_BAR)).length;
+  const occupiedHouseCount = new Set(PLANETS.map(p=>houseOf(LON[p]))).size;
+  const selfRulingTotal = SELF_RULING_MODERN.length + SELF_RULING_TRAD.length;
+  const selfRulingSystems = [SELF_RULING_MODERN.length?'modern':null, SELF_RULING_TRAD.length?'traditional':null].filter(Boolean);
+  document.getElementById('caveatBox').innerHTML = `<b>Two honesty notes:</b> ${aspectDenseCount} of this chart's 10 planets sit within 3° of another, so signal 4 alone ${aspectDenseCount>=7?"is common here, not distinguishing on its own":"is fairly selective on its own"}, it's the requirement of three or more <i>different</i> signal types agreeing that does the real filtering. A first draft of signal 11 checked whether 2-3+ other house cusps' rulers converge on a planet's own house, but this chart crams its ten planets into just ${occupiedHouseCount} occupied houses, so that draft version tripped for most of them and stopped meaning anything, so it was rebuilt around house self-rulership instead (a house whose own ruler sits inside it), which is genuinely rare: ${selfRulingTotal===0 ? "this chart has none, for either rulership system" : `this chart has ${selfRulingTotal}, under ${selfRulingSystems.join(' and ')} rulership`}. And the "retrograde right now" half of signal 10 only applies when the chosen date is within about six weeks of the real ephemeris snapshot this dashboard has on file (${fmtDate(TRANSIT_RETRO_ANCHOR)}), for dates further out, only birth retrograde is counted, honestly, rather than guessed.`;
+}
+
+function renderCards(){
+  currentTally = computeConvergences(currentDate);
+  const flagged = currentTally.filter(t=>t.count>=3);
+  const host = document.getElementById('convGrid');
+  if(!flagged.length){
+    host.innerHTML = `<div class="panel" style="grid-column:1/-1;"><p style="color:var(--text-faint); font-size:13px;">No planet clears three independent signal types as of this date.</p></div>`;
+  } else {
+    host.innerHTML = flagged.map(f=>`
+      <div class="conv-card" data-planet="${f.planet}" style="--card-color:${PLANET_COLOR[f.planet]};">
+        <div class="cglow"></div>
+        <div class="conv-badge">${PLANET_GLYPH[f.planet]} Convergence <span class="pagecount">${f.count} signal types</span></div>
+        <div class="conv-title">${f.planet}</div>
+        <div class="conv-summary">${f.hits.length} independent facts across ${f.count} different techniques currently point at ${f.planet}.</div>
+        <div class="conv-sources">${[...new Set(f.hits.map(h=>h.page))].map(p=>`<span class="source-chip">${p}</span>`).join('')}</div>
+      </div>
+    `).join('');
+  }
+  document.querySelectorAll('.conv-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      renderDetail(currentTally.find(t=>t.planet===card.getAttribute('data-planet')));
+    });
+  });
+
+  const structuralNotes = buildStructuralNote(flagged);
+  document.getElementById('closingSynthesis').innerHTML = structuralNotes.length
+    ? structuralNotes.join(' ') + ` That's the real structure underneath this list, not ${flagged.length} unrelated observations, but a chart where several of the "why is this planet flagged" answers are each other's answers too.`
+    : (flagged.length ? `${flagged.map(f=>f.planet).join(', ')} each independently cleared the bar today; no direct structural link between them was detected beyond each standing on its own accumulated evidence.` : '');
+
+}
+
+function renderDetail(t){
+  const body = document.getElementById('detailBody');
+  if(!t){ body.className='detail-empty'; body.innerHTML='Click any convergence above for the full cross-page breakdown.'; return; }
+  body.className = '';
+  const factsHtml = t.hits.map(f=>`
+    <div class="fact-item">
+      <span class="fact-page">${f.page}</span>
+      <span class="fact-text">${f.text}</span>
+    </div>
+  `).join('');
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${PLANET_COLOR[t.planet]}; border-color:${PLANET_COLOR[t.planet]};">${PLANET_GLYPH[t.planet]}</div>
+      <div>
+        <div class="detail-title">${t.planet}</div>
+        <div class="detail-tag">${t.count} independent signal types, as of ${fmtDate(currentDate)}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>The facts, one per source</h3>
+      <div class="fact-list">${factsHtml}</div>
+    </div>
+    <div class="detail-section">
+      <h3>What ${t.planet} governs</h3>
+      <p>${t.planet} governs ${PLANET_KEYWORDS[t.planet]}. With this many independent systems pointing at it right now, that's the register this chapter is likely running through.</p>
+    </div>
+    <div class="detail-section">
+      <h3>Go deeper</h3>
+      <p>Each fact above traces back to a real calculation on its own page: <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>, <a href="lots.html" style="color:var(--gold);">Lots</a>, <a href="aspects.html" style="color:var(--gold);">Aspects &amp; Returns</a>, <a href="timing.html" style="color:var(--gold);">Time Lords</a>, <a href="natal-chart.html" style="color:var(--gold);">Natal Chart</a>, and <a href="house-rulership.html" style="color:var(--gold);">House Rulership</a>. Nothing here is asserted without a source you can independently check.</p>
+    </div>
+  `;
+  body.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ================================================================
+   NUMEROLOGY CROSS-REFERENCES (numerology handoff, step 6)
+   A small, separate comparison, not folded into the eleven-signal engine
+   above, numerology isn't one of its signal types. Mirrors numerology.html's
+   own reduction engine (its own copy, same pattern this project already
+   uses for TRAD_RULERS/HOUSE_CONCRETE/etc across pages, see HANDOFF.md).
+   ================================================================ */
+const NUM_BIRTH_DATE = (SHARED && SHARED.birthDate) ? SHARED.birthDate : '1976-07-04';
+function parseNumBirthDate(iso){ const [y,m,d]=iso.split('-').map(x=>parseInt(x,10)); return {year:y,month:m,day:d}; }
+const numBd = parseNumBirthDate(NUM_BIRTH_DATE);
+const NUM_MASTERS = [11,22,33];
+const NUM_DEBTS = [13,14,16,19];
+function numDigitSum(n){ return String(Math.abs(Math.trunc(n))).split('').reduce((s,d)=>s+parseInt(d,10),0); }
+function numReduce(n){
+  let cur=n; const debts=[];
+  while(true){
+    if(NUM_DEBTS.includes(cur) && !debts.includes(cur)) debts.push(cur);
+    if(NUM_MASTERS.includes(cur)) return {result:cur,isMaster:true,debts};
+    if(cur<=9) return {result:cur,isMaster:false,debts};
+    cur=numDigitSum(cur);
+  }
+}
+function numPlainDigit(r){ return NUM_MASTERS.includes(r) ? numDigitSum(r) : r; }
+// One classical numerology-to-planet correspondence, updated with the same modern outer-planet
+// assignments this dashboard already uses elsewhere (4-Uranus, 7-Neptune), reducing any master
+// number to its base digit first, the same carve-out Pinnacle age math already uses. This is one
+// real correspondence, not the only one different numerology schools use, adopted here only to
+// make a direct cross-system comparison possible, not asserted as more authoritative than the
+// numbers themselves.
+const NUMBER_TO_PLANET = {1:'Sun',2:'Moon',3:'Jupiter',4:'Uranus',5:'Mercury',6:'Venus',7:'Neptune',8:'Saturn',9:'Mars'};
+
+function numLifePathA(bdx){
+  const mR=numReduce(bdx.month), dR=numReduce(bdx.day), yR=numReduce(bdx.year);
+  const group = mR.result+dR.result+yR.result;
+  const final = numReduce(group);
+  return { result: final.result, isMaster: final.isMaster, mR, dR, yR };
+}
+const NUM_LP = numLifePathA(numBd);
+
+function numPersonalYear(bdx, date){
+  const calYear = date.getFullYear();
+  const digits = `${bdx.month}${bdx.day}${calYear}`;
+  const sum = digits.split('').reduce((s,d)=>s+parseInt(d,10),0);
+  return numReduce(sum);
+}
+function numPinnacles(lp){
+  const p1=numReduce(lp.mR.result+lp.dR.result);
+  const p2=numReduce(lp.dR.result+lp.yR.result);
+  const p3=numReduce(p1.result+p2.result);
+  const p4=numReduce(lp.mR.result+lp.yR.result);
+  return [p1,p2,p3,p4];
+}
+function numPinnacleAgeBrackets(lifePathResult){
+  const base = numPlainDigit(lifePathResult);
+  const end1=36-base, end2=end1+9, end3=end2+9;
+  return [ {from:0,to:end1}, {from:end1,to:end2}, {from:end2,to:end3}, {from:end3,to:Infinity} ];
+}
+function numActivePinnacle(date){
+  const birthObj = new Date(NUM_BIRTH_DATE+'T00:00:00Z');
+  const age = (date-birthObj)/(365.2425*24*3600*1000);
+  const pins = numPinnacles(NUM_LP);
+  const brackets = numPinnacleAgeBrackets(NUM_LP.result);
+  let idx = brackets.findIndex(b=> age>=b.from && age<b.to);
+  if(idx<0) idx = brackets.length-1;
+  return { pinnacle: pins[idx], index: idx, bracket: brackets[idx] };
+}
+const PINNACLE_ORDINAL = ['1st','2nd','3rd','4th'];
+
+function renderNumerologyCrossRefs(date){
+  const host = document.getElementById('numerologyHost');
+  if(!host) return;
+
+  // 1. Personal Year vs Annual Profection Lord of the Year
+  const py = numPersonalYear(numBd, date);
+  const pyPlanet = NUMBER_TO_PLANET[numPlainDigit(py.result)];
+  const prof = computeProfection(date);
+  const pyAgrees = pyPlanet === prof.lord;
+
+  // 2. Active Pinnacle vs Firdaria major ruler vs Zodiacal Releasing from Fortune ruler
+  const activePin = numActivePinnacle(date);
+  const pinPlanet = NUMBER_TO_PLANET[numPlainDigit(activePin.pinnacle.result)];
+  const fird = computeFirdaria(date);
+  const zrF = computeZR(date, signOf(Fortune));
+  const pinAgreesFirdaria = pinPlanet === fird.major.planet;
+  const pinAgreesZR = pinPlanet === zrF.ruler;
+
+  // 3. Life Path vs modern final dispositor vs natal Sun
+  const lpPlanetA = NUMBER_TO_PLANET[numPlainDigit(NUM_LP.result)];
+  const finalDispositors = ROLES_MODERN.finals;
+  const sunSign = signOf(LON.Sun);
+  const matchesFinal = finalDispositors.includes(lpPlanetA);
+  const matchesSun = lpPlanetA === 'Sun';
+  const coreMatches = [matchesFinal, matchesSun].filter(Boolean).length;
+
+  host.innerHTML = `
+    <div class="signal-item" style="grid-column:1/-1;">
+      <b>Personal Year ${py.result} (${pyPlanet} by correspondence) vs Annual Profection Lord ${prof.lord}</b><br>
+      ${pyAgrees
+        ? `Agreement: both independently-derived time-lord systems point at ${prof.lord} right now.`
+        : `Disagreement: Personal Year ${py.result} corresponds to ${pyPlanet}, Annual Profections have profected to ${prof.sign} at age ${prof.age}, ruled by ${prof.lord}. Two independent answers to "what theme is running right now," genuinely different, not a failure to reconcile, real disagreement between independent systems is information too.`}
+    </div>
+    <div class="signal-item" style="grid-column:1/-1;">
+      <b>${PINNACLE_ORDINAL[activePin.index]} Pinnacle ${activePin.pinnacle.result} (${pinPlanet} by correspondence, active age ${activePin.bracket.from}${activePin.bracket.to===Infinity?'+':'–'+activePin.bracket.to}) vs Firdaria major ruler ${fird.major.planet} vs Zodiacal Releasing from Fortune ruler ${zrF.ruler}</b><br>
+      ${(pinAgreesFirdaria || pinAgreesZR)
+        ? `Alignment: the active Pinnacle's correspondence planet (${pinPlanet}) matches ${pinAgreesFirdaria && pinAgreesZR ? 'both the current Firdaria major ruler and the current Zodiacal Releasing ruler' : pinAgreesFirdaria ? 'the current Firdaria major ruler' : 'the current Zodiacal Releasing ruler'}. Three independent life-stage-dividing techniques, built on completely different math, converging on the same planet for this period.`
+        : `No planet match this period: Firdaria names ${fird.major.planet}, Zodiacal Releasing from Fortune names ${zrF.ruler}, the active Pinnacle corresponds to ${pinPlanet}. Three independent life-stage dividers, three different current rulers, worth naming honestly rather than forcing a convergence that isn't there.`}
+    </div>
+    <div class="signal-item" style="grid-column:1/-1;">
+      <b>Life Path ${NUM_LP.result}${NUM_LP.isMaster?` (reduces to ${numPlainDigit(NUM_LP.result)} for this correspondence)`:''}, ${lpPlanetA} by correspondence, vs modern final dispositor ${finalDispositors.length?finalDispositors.join(' / '):'none, chart is in mutual reception'} vs natal Sun in ${sunSign}</b><br>
+      ${coreMatches>=1
+        ? `${lpPlanetA} matches ${coreMatches} of the other 2 independent "core engine" readings here${matchesFinal?', the modern final dispositor':''}${matchesSun?', the natal Sun itself':''}. Worth naming alongside the dispositor tree and natal Sun as a third angle on the same question, the way Firdaria and Annual Profections already converged on Jupiter above.`
+        : `No match for this chart: Life Path corresponds to ${lpPlanetA}, the modern final dispositor is ${finalDispositors.length?finalDispositors.join(' / '):'unresolved (mutual reception)'}, the natal Sun sits in ${sunSign}. Three genuinely independent systems, three different answers here, that's a real result too, not every chart lines all three of these up.`}
+    </div>
+    <div class="hint" style="margin-top:2px; margin-bottom:0;">Numerology-to-planet correspondence used above: 1 Sun, 2 Moon, 3 Jupiter, 4 Uranus, 5 Mercury, 6 Venus, 7 Neptune, 8 Saturn, 9 Mars.</div>
+  `;
+}
+
+/* ---------------- date controls ---------------- */
+function setDate(d){
+  currentDate = d;
+  document.getElementById('asOfDate').value = fmtDate(d);
+  document.getElementById('asOfLabel').textContent = `Age ${((d-BIRTH)/(365.2425*24*3600*1000)).toFixed(1)} on this date`;
+  renderCards();
+  renderDetail(null);
+  renderNumerologyCrossRefs(d);
+}
+document.getElementById('asOfDate').addEventListener('change', (e)=>{
+  if(e.target.value) setDate(new Date(e.target.value+'T12:00:00'));
+});
+document.getElementById('btnToday').addEventListener('click', ()=> setDate(new Date()));
+
+/* ---------------- init ---------------- */
+document.getElementById('chartSourceNote').innerHTML = SHARED
+  ? `Showing <b>${SHARED.name || 'your saved chart'}</b>, entered on <a href="birth-data.html">Birth Data</a>. The "retrograde right now" signal is skipped, this dashboard only has a live ephemeris snapshot on file for its own reference chart.`
+  : `Showing this dashboard's built-in reference chart, no chart saved yet, enter yours on <a href="birth-data.html">Birth Data</a>.`;
+
+renderSignalGrid();
+setDate(new Date());
+</script>
+</body>
+</html>
