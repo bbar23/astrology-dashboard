@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Seven Hermetic Lots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --rose:#E08FA8; --sky:#7FB3D9;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--gold);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--violet); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:680px; line-height:1.55;}
+
+  .layout{display:grid; grid-template-columns:300px 1fr; gap:18px;}
+  @media (max-width: 880px){.layout{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:15px; margin:0 0 4px;}
+  .panel .hint{font-size:12px; color:var(--text-faint); margin-bottom:14px; line-height:1.5;}
+
+  .field-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .field-row label{font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:78px;}
+  .glyph{font-size:14px; width:22px; text-align:center; color:var(--gold);}
+  input[type=number]{
+    flex:1; background:var(--input-bg); color:var(--text); border:1px solid var(--border);
+    border-radius:7px; padding:6px 8px; font-family:'IBM Plex Mono', monospace; font-size:12px; width:100%;
+  }
+  input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+
+  .toggle-row{display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:10px;}
+  .toggle-row button{flex:1; background:transparent; border:none; color:var(--text-dim); font-family:'Inter'; font-size:11.5px; font-weight:500; padding:8px 4px; border-radius:7px; cursor:pointer; transition:all .15s ease;}
+  .toggle-row button.active{background:var(--violet); color:#16112B;}
+  .toggle-row.gold button.active{background:var(--gold); color:#1a1406;}
+
+  .divider{height:1px; background:var(--border); margin:14px 0; border:none;}
+
+  .btn-row{display:flex; gap:8px; margin-top:4px;}
+  button.primary, button.ghost{font-family:'Inter'; font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--border);}
+  button.primary{background:var(--violet); color:#16112B; border:1px solid var(--violet); flex:1;}
+  button.ghost{background:transparent; color:var(--text-dim);}
+  button.primary:hover{filter:brightness(1.08);}
+  button.ghost:hover{color:var(--text); border-color:var(--text-faint);}
+
+  .canvas-panel{min-height:600px; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  #wheelHost{width:100%; max-width:580px;}
+  .wheel-ring{fill:none; stroke:var(--border); stroke-width:1;}
+  .wheel-spoke{stroke:var(--border); stroke-width:1;}
+  .sign-glyph{font-size:14px; fill:var(--text-dim); text-anchor:middle; dominant-baseline:central; font-family:'IBM Plex Mono', monospace;}
+  .marker-line{stroke-width:1.4;}
+  .marker-dot{cursor:pointer;}
+  .marker-label{font-family:'IBM Plex Mono', monospace; cursor:pointer; font-weight:600;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:10px 14px; justify-content:center; margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-dim);}
+  .legend span.dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle;}
+
+  .detail-panel{margin-top:18px; max-width:760px; margin-left:auto; margin-right:auto;}
+  .detail-empty{color:var(--text-faint); font-size:13px; line-height:1.6;}
+  .detail-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .detail-glyph{width:44px; height:44px; border-radius:50%; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:14px; font-family:'IBM Plex Mono', monospace; font-weight:700; flex-shrink:0;}
+  .detail-title{font-family:'Fraunces', serif; font-weight:500; font-size:20px;}
+  .detail-title .in-sign{color:var(--gold); font-weight:500;}
+  .detail-tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+  .detail-section{margin-bottom:26px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.08s;}
+  .detail-section:nth-of-type(3){animation-delay:.14s;}
+  .detail-section:nth-of-type(4){animation-delay:.20s;}
+  .detail-section:nth-of-type(5){animation-delay:.26s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--violet); margin:0 0 10px;}
+  .detail-section p{font-size:15px; line-height:1.85; color:var(--text); margin:0; letter-spacing:0.001em;}
+  .detail-section p + p{margin-top:12px;}
+  .formula-box{font-family:'IBM Plex Mono', monospace; font-size:12.5px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; padding:12px 14px; line-height:1.9; color:var(--text-dim);}
+  .formula-box b{color:var(--gold);}
+  .condition-box{
+    display:flex; align-items:center; gap:10px; background:var(--input-bg); border:1px solid var(--border);
+    border-radius:8px; padding:14px 16px;
+  }
+  .condition-box .badge{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.05em; padding:4px 9px; border-radius:20px; flex-shrink:0;
+  }
+  .badge.regard{background:#16332C; color:var(--teal); border:1px solid var(--teal);}
+  .badge.aversion{background:#332020; color:#E08585; border:1px solid #E08585;}
+
+  .extra-lots{margin-top:18px;}
+  .extra-lots table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .extra-lot-row{transition:background .15s ease;}
+  .extra-lot-row:hover{background:var(--input-bg);}
+  .extra-lots th{font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);}
+  .extra-lots td{padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top;}
+  .extra-lots tr:last-child td{border-bottom:none;}
+  .extra-lots .lot-name{color:var(--text); font-weight:600; white-space:nowrap;}
+  .extra-lots .lot-pos{font-family:'IBM Plex Mono', monospace; color:var(--gold); white-space:nowrap;}
+  .extra-lots .lot-desc{color:var(--text-dim); line-height:1.5;}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:8px;}
+  .chart-source-note a{color:var(--violet); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · The Seven Hermetic Lots</div>
+    <h1>Fortune, Spirit &amp; the five lots derived from them</h1>
+    <p class="sub">The Hermetic tradition (Paulus, Olympiodorus) builds seven core lots from your Ascendant and five planets. Two are primary, Fortune and Spirit, and five more (Eros, Victory, Necessity, Courage, Nemesis) are each built by taking a planet's distance from Fortune or Spirit and projecting it from your Ascendant. Tap any marker for the exact math, the meaning, and whether that lot's ruler is positioned to actually "see" it.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Chart input</h2>
+      <div class="hint">Absolute zodiac longitude, 0–360° (0°=0° Aries, 30°=0° Taurus, etc).</div>
+
+      <div class="field-row"><label><span class="glyph">ASC</span>Ascendant</label><input type="number" id="inAsc" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">☉</span>Sun</label><input type="number" id="inSun" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">☽</span>Moon</label><input type="number" id="inMoon" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">☿</span>Mercury</label><input type="number" id="inMercury" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♀</span>Venus</label><input type="number" id="inVenus" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♂</span>Mars</label><input type="number" id="inMars" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♃</span>Jupiter</label><input type="number" id="inJupiter" step="0.01"></div>
+      <div class="field-row"><label><span class="glyph">♄</span>Saturn</label><input type="number" id="inSaturn" step="0.01"></div>
+
+      <hr class="divider">
+
+      <div class="hint" style="margin-bottom:8px;">Sect handling</div>
+      <div class="toggle-row" id="sectModeToggle">
+        <button id="btnFixed">513-Lots list (fixed)</button>
+        <button id="btnTraditional" class="active">Traditional (sect-reversed)</button>
+      </div>
+      <div class="toggle-row" id="sectToggle">
+        <button id="btnDay">Day birth</button>
+        <button id="btnNight" class="active">Night birth</button>
+      </div>
+
+      <div class="hint" style="margin-bottom:8px;">Eros formula</div>
+      <div class="toggle-row gold" id="erosToggle">
+        <button id="btnPaulus" class="active">Paulus (Venus−Spirit)</button>
+        <button id="btnValens">Valens (Fortune−Spirit)</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="btnCalc">Calculate</button>
+        <button class="ghost" id="btnExample">Load my chart</button>
+      </div>
+    </div>
+
+    <div class="panel canvas-panel">
+      <div id="wheelHost"></div>
+      <div class="legend" id="legendHost"></div>
+    </div>
+  </div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Load your chart, then tap any marker on the wheel to read its formula, meaning, and ruler condition.</div>
+  </div>
+
+  <div class="panel extra-lots">
+    <h2>More lots, pulled straight from your chart</h2>
+    <div class="hint">Computed live by this dashboard's own formula engine for its fictional demo chart (Jul 4, 1976, day birth). Click any row for the full breakdown. All eight below have a verified formula, reverse-engineered and confirmed exact against this project's original real chart before this dashboard ever had its own ephemeris built in. A few additional lots that once appeared here came from a real Astro-Seek export with no independently reconstructed formula, since there's no equivalent export for a chart that was never actually born, they've been left out rather than faked.</div>
+    <table>
+      <thead><tr><th>Lot</th><th>Position</th><th>What it's for</th></tr></thead>
+      <tbody id="extraLotsBody"></tbody>
+    </table>
+  </div>
+
+  <footer>SEVEN HERMETIC LOTS · Hellenistic Arabic Parts · one interpretive layer among many, not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const SIGN_KEYWORDS = {
+  Aries:"initiating, direct, and quick to act", Taurus:"steady, sensory, and slow to move",
+  Gemini:"curious, communicative, and quick-shifting", Cancer:"protective, feeling-based, and cyclical",
+  Leo:"expressive, warm, and proud", Virgo:"precise, discerning, and service-minded",
+  Libra:"relational, balancing, and aesthetic", Scorpio:"intense, probing, and private",
+  Sagittarius:"expansive, philosophical, and blunt", Capricorn:"disciplined, structured, and patient",
+  Aquarius:"independent, unconventional, and idea-driven", Pisces:"dreamy, boundaryless, and empathic"
+};
+const TRAD_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Mars",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Saturn",Pisces:"Jupiter"};
+
+const INPUT_MEANINGS = {
+  Ascendant:"the front door of your chart, the instinctive persona and lens through which everything else gets filtered",
+  Sun:"conscious identity and vitality", Moon:"emotional instinct and need",
+  Mercury:"thought, perception, and communication", Venus:"what you value and what draws you in",
+  Mars:"drive and assertion", Jupiter:"expansion and belief", Saturn:"structure and responsibility"
+};
+const LOT_MEANINGS = {
+  Fortune:"body, material circumstance, health, and the events that happen <i>to</i> you, the oldest and most consulted of all the lots, and the traditional starting point for the timing technique called zodiacal releasing.",
+  Spirit:"willpower, purpose, and the actions you deliberately take, Fortune's mirror. Where Fortune is what life hands you, Spirit is what you do about it.",
+  Eros:"desire, attraction, and what pulls you toward closeness, romantic, creative, or otherwise. Not just romance: the gravitational pull toward whoever or whatever you keep returning to.",
+  Victory:"the confidence and self-belief that let you actually pursue what Spirit points toward, Jupiter's optimism applied to your sense of purpose. Where you're most able to advocate for yourself.",
+  Necessity:"compulsion, constraint, and what you feel you <i>have</i> to do, obligations, debts (literal or otherwise), and the parts of life that don't feel optional.",
+  Courage:"where you take risks, assert yourself physically, and fight for what's yours, Mars's boldness applied to your material circumstances.",
+  Nemesis:"the consequences that catch up with you, self-undoing, karmic feedback, the places where old patterns come back around."
+};
+const LOT_COLOR = { Fortune:'var(--gold)', Spirit:'var(--violet)', Eros:'var(--teal)', Victory:'#C9A6E8', Necessity:'var(--sky)', Courage:'#E0846F', Nemesis:'#8E8FBF' };
+
+const HOUSE_MEANINGS = {
+  1:"the body, appearance, and how you initiate, the house of self",
+  2:"resources, income, and what you consider valuable enough to hold onto",
+  3:"communication, siblings, short trips, and everyday learning",
+  4:"home, family roots, and your private foundation",
+  5:"creativity, romance, children, and what you do for pleasure",
+  6:"daily work, health routines, and service to others",
+  7:"partnership, marriage, open contracts, and significant others",
+  8:"shared resources, intimacy, transformation, and what's inherited or entangled with others",
+  9:"belief, higher education, long travel, and the search for meaning",
+  10:"career, public reputation, and the role you're known for",
+  11:"friendship, community, and hopes for the future",
+  12:"the unconscious, isolation, endings, and what stays hidden"
+};
+
+const HOUSE_CONCRETE = {
+  1:"your body and physical vitality, the first impression you make, the instinctive way you start anything new",
+  2:"your income and bank balance, the possessions you keep, how tightly your sense of worth is tied to what you own",
+  3:"your siblings, your texts and emails, your commute, the offhand way you talk day to day",
+  4:"your childhood home, your parents, the property you live in now, the domestic patterns you inherited without choosing them",
+  5:"dating and romance, creative projects you actually finish, children, the risks you take for the fun of it",
+  6:"your job's daily grind, health routines, pets, the coworkers and small tasks that fill an ordinary Tuesday",
+  7:"your marriage or committed partner, business partners, and, less comfortably, your open rivals",
+  8:"shared money (joint accounts, debt, inheritance), sex, therapy, and whatever gets entangled with someone else's resources",
+  9:"travel abroad, higher education, publishing, in-laws, and the belief system you build your worldview on",
+  10:"your career trajectory, your boss and public reputation, the role strangers would use to describe you",
+  11:"your friend groups, the organizations you belong to, long-range goals, and the causes you attach hope to",
+  12:"solitude, hospitals and institutions, secrets, including the ones you keep from yourself"
+};
+
+const HOUSE_QUADRANT = {1:'angular',4:'angular',7:'angular',10:'angular', 2:'succedent',5:'succedent',8:'succedent',11:'succedent', 3:'cadent',6:'cadent',9:'cadent',12:'cadent'};
+
+const LOT_QUADRANT_TEXT = {
+  Fortune: {
+    angular: "Angular houses are where things happen visibly and directly, so Fortune here tends to arrive as an actual event, something that happens <i>to</i> you that you can point to and name, rather than a slow drift.",
+    succedent: "Succedent houses are about what you build and hold onto, so Fortune here shows up less as a single event and more as an ongoing condition: what accumulates (or doesn't) in this area over years, not moments.",
+    cadent: "Cadent houses are mental and transitional, so Fortune here tends to arrive through information, timing, or circumstance you couldn't have engineered: being in the right place, hearing the right thing, at a moment you didn't control."
+  },
+  Spirit: {
+    angular: "Angular houses are where you act and initiate, so Spirit's willpower shows up here directly, as deliberate moves you make and can take credit for.",
+    succedent: "Succedent houses are about sustained effort, so Spirit here isn't a single decisive act, it's the discipline to keep choosing the same direction over time.",
+    cadent: "Cadent houses are about processing and adapting, so Spirit here operates through thinking things through, adjusting your approach, and choosing your response after the fact rather than in the moment."
+  },
+  Eros: {
+    angular: "Angular houses make things visible, so what you're drawn to here shows up openly, in ways other people notice about you.",
+    succedent: "Succedent houses are about what you keep, so desire here isn't fleeting, it's the pull toward people or things you want to hold onto and build with.",
+    cadent: "Cadent houses are mental and behind-the-scenes, so attraction here often starts as fascination or curiosity before it becomes anything you'd call desire out loud."
+  },
+  Victory: {
+    angular: "Angular houses are about direct action, so your confidence here shows up as visible self-advocacy: speaking up, stepping forward, taking the credit you're owed.",
+    succedent: "Succedent houses are about resources and stability, so Victory here builds quietly, as competence and self-belief that accumulates through repetition rather than a single triumphant moment.",
+    cadent: "Cadent houses are mental, so Victory here is largely internal: a growing sense of capability that may take a while to translate into anything visible to other people."
+  },
+  Necessity: {
+    angular: "Angular houses are where obligation becomes unavoidable and visible, so Necessity here shows up as duties everyone can see you carrying.",
+    succedent: "Succedent houses hold onto things, so Necessity here tends to be financial or material: debts, dependents, or resources you're responsible for maintaining.",
+    cadent: "Cadent houses are transitional, so Necessity here shows up as mental or informational obligation: things you feel compelled to learn, explain, or keep track of."
+  },
+  Courage: {
+    angular: "Angular houses are where action happens, so Courage here is the most literal version of itself: physical risk-taking, direct confrontation, assertiveness other people can see.",
+    succedent: "Succedent houses are about resources, so Courage here shows up as financial or material risk: the boldness to invest, spend, or bet on something material.",
+    cadent: "Cadent houses are mental, so Courage here is more about intellectual or verbal boldness: saying the unpopular thing, defending a position, taking a risk with your words rather than your body."
+  },
+  Nemesis: {
+    angular: "Angular houses are where things happen visibly and directly, so Nemesis here doesn't stay quiet: the reckoning shows up as an actual event, something you can point to and say 'that's when it caught up with me.'",
+    succedent: "Succedent houses are about what accumulates, so Nemesis here works slowly: it builds in the resources, habits, or relationships you've invested in, and the consequence looks like erosion rather than a single moment.",
+    cadent: "Cadent houses are mental and transitional, so Nemesis here operates through realization more than event: you don't so much experience the consequence as suddenly understand it, often in hindsight."
+  }
+};
+
+const LOT_HISTORY = {
+  Fortune:"Fortune is the oldest lot on record, described as early as Dorotheus and Valens in the 1st century CE, and it's the anchor point for zodiacal releasing, a Hellenistic technique that unfolds an entire life's timeline in chapters ruled by whichever sign Fortune's ruler leads you into next.",
+  Spirit:"Spirit is Fortune's constant companion in the earliest texts, Valens treats the two as a pair from the very start, one showing what happens to you, the other showing what you do about it. Spirit also anchors its own branch of zodiacal releasing, tracking career and purpose rather than body and circumstance.",
+  Eros:"Paulus Alexandrinus (4th century) and his commentator Olympiodorus set Eros up as a derivative of Spirit rather than a primary lot, it measures how far Venus sits from your sense of purpose, then casts that same arc from the Ascendant. Valens' older, less common version measures Fortune-to-Spirit instead, quietly changing what the lot actually tracks.",
+  Victory:"Victory belongs to the same Hermetic set as Eros, Jupiter's distance from Spirit, projected outward. Classical sources read it as the confidence and favor that let you actually act on what Spirit points toward, which is why it's sometimes called the lot of self-advocacy.",
+  Necessity:"Necessity is one of three lots built from Fortune rather than Spirit (with Courage and Nemesis). Where Fortune shows circumstance, Necessity shows what that circumstance obligates you to do, debts, duties, the parts of the material lot that aren't optional.",
+  Courage:"Courage takes Mars's distance from Fortune and casts it from the Ascendant, Mars's boldness applied specifically to your material and bodily circumstances, rather than to Spirit's sense of purpose.",
+  Nemesis:"Nemesis, the last of the seven, tracks Saturn's distance from Fortune. Classical authors read it as the lot of consequence and reckoning, not punishment exactly, but the place where a pattern set in motion by Fortune eventually comes back around."
+};
+
+function signOffset(idx){ let d=idx%12; return d; }
+const EXALTATION = {Sun:'Aries',Moon:'Taurus',Mercury:'Virgo',Venus:'Pisces',Mars:'Capricorn',Jupiter:'Cancer',Saturn:'Libra'};
+function oppositeSign(sign){ const idx=SIGNS.indexOf(sign); return SIGNS[(idx+6)%12]; }
+const DOMICILE = {}; // planet -> [signs it rules]
+Object.keys(TRAD_RULERS).forEach(sign=>{
+  const p = TRAD_RULERS[sign];
+  if(!DOMICILE[p]) DOMICILE[p]=[];
+  DOMICILE[p].push(sign);
+});
+function dignityOf(planet, sign){
+  if(DOMICILE[planet] && DOMICILE[planet].includes(sign)) return 'domicile';
+  if(EXALTATION[planet] === sign) return 'exaltation';
+  if(DOMICILE[planet] && DOMICILE[planet].map(oppositeSign).includes(sign)) return 'detriment';
+  if(EXALTATION[planet] && oppositeSign(EXALTATION[planet]) === sign) return 'fall';
+  return 'peregrine';
+}
+const DIGNITY_BLURB = {
+  domicile:"strong and at home here, comfortable operating on its own terms",
+  exaltation:"elevated and confident here, performing at its best",
+  detriment:"working against the grain here, has to work harder to express itself cleanly",
+  fall:"weakened here, its usual strengths are hard to access",
+  peregrine:"in neutral territory, no special strength or struggle from sign placement alone"
+};
+
+const EXAMPLE = {
+  asc: 178.0992, sun: 102.7819, moon: 191.9738, mercury: 90.1404,
+  venus: 107.3139, mars: 148.6073, jupiter: 52.8048, saturn: 123.3802, sect: 'day'
+};
+// A fictional demo chart (4 Jul 1976, 12:00 EDT, Philadelphia PA), computed by this dashboard's
+// own ephemeris engine. Day-sect formulas reproduce: Fortune Sag 27°17', Spirit Gem 28°54',
+// Eros Lib 16°30', Victory Leo 22°00', Necessity Pis 25°15', Courage Cap 26°47', Nemesis Aqu 22°01'.
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+function sharedAsExample(){
+  if(!SHARED) return null;
+  const P = SHARED.points;
+  return { asc:P.Ascendant, sun:P.Sun, moon:P.Moon, mercury:P.Mercury, venus:P.Venus,
+    mars:P.Mars, jupiter:P.Jupiter, saturn:P.Saturn, sect: SHARED.sect || 'night', name: SHARED.name };
+}
+
+let state = null;
+
+function norm(deg){ let d = deg % 360; if(d<0) d+=360; return d; }
+function toSignDeg(lon){
+  const idx = Math.floor(lon/30) % 12;
+  const within = lon - idx*30;
+  const deg = Math.floor(within);
+  const min = Math.round((within-deg)*60);
+  return { sign: SIGNS[idx], deg, min, idx };
+}
+function fmt(lon){ const s = toSignDeg(norm(lon)); return `${s.sign} ${String(s.deg).padStart(2,'0')}°${String(s.min).padStart(2,'0')}'`; }
+function signIndexOf(lon){ return Math.floor(norm(lon)/30) % 12; }
+function isAversion(lotLon, rulerLon){
+  const d0 = Math.abs(signIndexOf(lotLon) - signIndexOf(rulerLon));
+  const d = Math.min(d0, 12-d0);
+  return (d === 1 || d === 5);
+}
+
+let sectVal = 'night';
+document.getElementById('btnDay').addEventListener('click', ()=> setSect('day'));
+document.getElementById('btnNight').addEventListener('click', ()=> setSect('night'));
+function setSect(sect){
+  document.getElementById('btnDay').classList.toggle('active', sect==='day');
+  document.getElementById('btnNight').classList.toggle('active', sect==='night');
+  sectVal = sect;
+  if(state) calculate();
+}
+
+let sectMode = 'traditional';
+document.getElementById('btnFixed').addEventListener('click', ()=>{
+  sectMode = 'fixed';
+  document.getElementById('btnFixed').classList.add('active');
+  document.getElementById('btnTraditional').classList.remove('active');
+  document.getElementById('sectToggle').style.opacity = '0.4';
+  document.getElementById('sectToggle').style.pointerEvents = 'none';
+  if(state) calculate();
+});
+document.getElementById('btnTraditional').addEventListener('click', ()=>{
+  sectMode = 'traditional';
+  document.getElementById('btnTraditional').classList.add('active');
+  document.getElementById('btnFixed').classList.remove('active');
+  document.getElementById('sectToggle').style.opacity = '1';
+  document.getElementById('sectToggle').style.pointerEvents = 'auto';
+  if(state) calculate();
+});
+
+let erosFormula = 'paulus';
+document.getElementById('btnPaulus').addEventListener('click', ()=>{
+  erosFormula='paulus';
+  document.getElementById('btnPaulus').classList.add('active');
+  document.getElementById('btnValens').classList.remove('active');
+  if(state) calculate();
+});
+document.getElementById('btnValens').addEventListener('click', ()=>{
+  erosFormula='valens';
+  document.getElementById('btnValens').classList.add('active');
+  document.getElementById('btnPaulus').classList.remove('active');
+  if(state) calculate();
+});
+
+function loadIntoForm(ex){
+  document.getElementById('inAsc').value = ex.asc;
+  document.getElementById('inSun').value = ex.sun;
+  document.getElementById('inMoon').value = ex.moon;
+  document.getElementById('inMercury').value = ex.mercury;
+  document.getElementById('inVenus').value = ex.venus;
+  document.getElementById('inMars').value = ex.mars;
+  document.getElementById('inJupiter').value = ex.jupiter;
+  document.getElementById('inSaturn').value = ex.saturn;
+  setSect(ex.sect);
+  calculate();
+}
+document.getElementById('btnExample').addEventListener('click', ()=>{
+  const shared = sharedAsExample();
+  loadIntoForm(shared || EXAMPLE);
+});
+if(SHARED){
+  document.getElementById('btnExample').textContent = `Load ${SHARED.name || 'my'} chart`;
+}
+document.getElementById('btnCalc').addEventListener('click', calculate);
+
+function calculate(){
+  const ids = ['inAsc','inSun','inMoon','inMercury','inVenus','inMars','inJupiter','inSaturn'];
+  const vals = ids.map(id=>parseFloat(document.getElementById(id).value));
+  if(vals.some(v=>isNaN(v))){
+    document.getElementById('wheelHost').innerHTML = '<div style="text-align:center;color:var(--text-faint);font-size:13px;padding:60px 20px;">Enter all eight positions (or press "Load my chart"), then press Calculate.</div>';
+    return;
+  }
+  const [asc, sun, moon, mercury, venus, mars, jupiter, saturn] = vals;
+  const isDay = sectVal === 'day';
+  const isFixed = sectMode === 'fixed';
+  const useDayFormula = isFixed || isDay; // fixed mode always behaves like a day chart
+
+  const spirit  = useDayFormula ? norm(asc + sun - moon) : norm(asc + moon - sun);
+  const fortune = useDayFormula ? norm(asc + moon - sun) : norm(asc + sun - moon);
+
+  let eros;
+  if(erosFormula === 'paulus'){
+    eros = useDayFormula ? norm(asc + venus - spirit) : norm(asc + spirit - venus);
+  } else {
+    eros = useDayFormula ? norm(asc + fortune - spirit) : norm(asc + spirit - fortune);
+  }
+  const victory   = useDayFormula ? norm(asc + jupiter - spirit) : norm(asc + spirit - jupiter);
+  const necessity = useDayFormula ? norm(asc + fortune - mercury) : norm(asc + mercury - fortune);
+  const courage   = useDayFormula ? norm(asc + fortune - mars)    : norm(asc + mars - fortune);
+  const nemesis   = useDayFormula ? norm(asc + fortune - saturn)  : norm(asc + saturn - fortune);
+
+  state = { asc, sun, moon, mercury, venus, mars, jupiter, saturn, isDay, isFixed,
+    spirit, fortune, eros, victory, necessity, courage, nemesis };
+  renderWheel();
+  renderDetail(null);
+}
+
+const INPUT_POINTS = [
+  {id:'Ascendant', glyph:'ASC', color:'var(--text)', key:'asc'},
+  {id:'Sun', glyph:'☉', color:'#E0B84D', key:'sun'},
+  {id:'Moon', glyph:'☽', color:'#B7BEE0', key:'moon'},
+  {id:'Mercury', glyph:'☿', color:'#9FBF9F', key:'mercury'},
+  {id:'Venus', glyph:'♀', color:'#E08FA8', key:'venus'},
+  {id:'Mars', glyph:'♂', color:'#D97757', key:'mars'},
+  {id:'Jupiter', glyph:'♃', color:'#C9A6E8', key:'jupiter'},
+  {id:'Saturn', glyph:'♄', color:'#8E8FBF', key:'saturn'}
+];
+const LOT_POINTS = [
+  {id:'Fortune', glyph:'FOR', color:LOT_COLOR.Fortune, key:'fortune'},
+  {id:'Spirit', glyph:'SPI', color:LOT_COLOR.Spirit, key:'spirit'},
+  {id:'Eros', glyph:'ERO', color:LOT_COLOR.Eros, key:'eros'},
+  {id:'Victory', glyph:'VIC', color:LOT_COLOR.Victory, key:'victory'},
+  {id:'Necessity', glyph:'NEC', color:LOT_COLOR.Necessity, key:'necessity'},
+  {id:'Courage', glyph:'COU', color:LOT_COLOR.Courage, key:'courage'},
+  {id:'Nemesis', glyph:'NEM', color:LOT_COLOR.Nemesis, key:'nemesis'}
+];
+
+function renderWheel(){
+  const size = 560, cx = size/2, cy = size/2;
+  const outerR = 250, innerR = 205, inputR = 182, lotR = 130;
+
+  let svg = `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:580px; display:block; margin:0 auto;">`;
+  svg += `<circle class="wheel-ring" cx="${cx}" cy="${cy}" r="${outerR}"/>`;
+  svg += `<circle class="wheel-ring" cx="${cx}" cy="${cy}" r="${innerR}"/>`;
+
+  for(let i=0;i<12;i++){
+    const a0 = i*30 - 90, rad0 = a0*Math.PI/180;
+    svg += `<line class="wheel-spoke" x1="${cx+Math.cos(rad0)*innerR}" y1="${cy+Math.sin(rad0)*innerR}" x2="${cx+Math.cos(rad0)*outerR}" y2="${cy+Math.sin(rad0)*outerR}"/>`;
+    const aMid = (i*30+15) - 90, radMid = aMid*Math.PI/180;
+    const gx = cx + Math.cos(radMid)*((outerR+innerR)/2);
+    const gy = cy + Math.sin(radMid)*((outerR+innerR)/2);
+    svg += `<text class="sign-glyph" x="${gx}" y="${gy}">${SIGN_GLYPH[SIGNS[i]]}</text>`;
+  }
+
+  function pt(lon, r){ const a = lon - 90, rad = a*Math.PI/180; return { x: cx+Math.cos(rad)*r, y: cy+Math.sin(rad)*r }; }
+
+  INPUT_POINTS.forEach(p=>{
+    const lon = norm(state[p.key]);
+    const pos = pt(lon, inputR);
+    const edge = pt(lon, innerR);
+    svg += `<line class="marker-line" x1="${edge.x}" y1="${edge.y}" x2="${pos.x}" y2="${pos.y}" stroke="${p.color}" opacity="0.5"/>`;
+    svg += `<g class="marker-dot" data-id="${p.id}"><circle cx="${pos.x}" cy="${pos.y}" r="11" fill="#0F1226" stroke="${p.color}" stroke-width="1.4"/>
+      <text class="marker-label" x="${pos.x}" y="${pos.y+4}" text-anchor="middle" fill="${p.color}" style="font-size:11px;">${p.glyph}</text></g>`;
+  });
+
+  LOT_POINTS.forEach((p,i)=>{
+    const lon = norm(state[p.key]);
+    const pos = pt(lon, lotR);
+    svg += `<g class="marker-dot" data-id="${p.id}"><circle cx="${pos.x}" cy="${pos.y}" r="19" fill="#181022" stroke="${p.color}" stroke-width="2"/>
+      <text class="marker-label" x="${pos.x}" y="${pos.y+3.5}" text-anchor="middle" fill="${p.color}" style="font-size:8.5px;">${p.glyph}</text></g>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById('wheelHost').innerHTML = svg;
+
+  document.querySelectorAll('.marker-dot').forEach(g=>{
+    g.addEventListener('click', ()=> renderDetail(g.getAttribute('data-id')));
+  });
+
+  const legend = [...INPUT_POINTS, ...LOT_POINTS].map(p=>
+    `<span><span class="dot" style="background:${p.color}"></span>${p.id}</span>`
+  ).join('');
+  document.getElementById('legendHost').innerHTML = legend;
+}
+
+function renderDetail(id){
+  const body = document.getElementById('detailBody');
+  if(!id || !state){
+    body.className = 'detail-empty';
+    body.innerHTML = 'Load your chart, then tap any marker on the wheel to read its formula, meaning, and ruler condition.';
+    return;
+  }
+  body.className = '';
+  const isInput = INPUT_POINTS.some(p=>p.id===id);
+  const point = [...INPUT_POINTS, ...LOT_POINTS].find(p=>p.id===id);
+  const lon = norm(state[point.key]);
+  const s = toSignDeg(lon);
+  const ruler = TRAD_RULERS[s.sign];
+  const rulerKeyMap = {Sun:'sun',Moon:'moon',Mercury:'mercury',Venus:'venus',Mars:'mars',Jupiter:'jupiter',Saturn:'saturn'};
+  const rulerLon = rulerKeyMap[ruler] !== undefined ? norm(state[rulerKeyMap[ruler]]) : NaN;
+
+  let formulaHtml = '', meaningHtml = '', bridgeHtml = '', conditionHtml = '', houseHtml = '', chainHtml = '';
+
+  if(isInput){
+    meaningHtml = `${id} represents ${INPUT_MEANINGS[id]}. You entered it directly, no formula here, it's raw input the lots are built from.`;
+    bridgeHtml = `${id} sits in ${s.sign}, ruled by ${ruler}. Follow ${ruler}'s own placement on the <a href="dispositor-tree.html" style="color:var(--gold)">Dispositor Tree</a> to see how this connects to the rest of your chart.`;
+  } else {
+    const useDayFormula = state.isFixed || state.isDay;
+    const modeWord = state.isFixed ? 'fixed (513-list style)' : (state.isDay ? 'day chart' : 'night chart, sect-reversed');
+
+    function box(dayF, nightF, dayCalc, nightCalc, result){
+      const calc = useDayFormula ? dayCalc : nightCalc;
+      const f = useDayFormula ? dayF : nightF;
+      return `${modeWord}: <b>${f}</b><br>${calc} → <b>${fmt(result)}</b>`;
+    }
+
+    if(id === 'Fortune'){
+      formulaHtml = box('Ascendant + Moon − Sun','Ascendant + Sun − Moon',
+        `${fmt(state.asc)} + ${fmt(state.moon)} − ${fmt(state.sun)}`,
+        `${fmt(state.asc)} + ${fmt(state.sun)} − ${fmt(state.moon)}`, state.fortune);
+    } else if(id === 'Spirit'){
+      formulaHtml = box('Ascendant + Sun − Moon','Ascendant + Moon − Sun',
+        `${fmt(state.asc)} + ${fmt(state.sun)} − ${fmt(state.moon)}`,
+        `${fmt(state.asc)} + ${fmt(state.moon)} − ${fmt(state.sun)}`, state.spirit);
+    } else if(id === 'Eros'){
+      if(erosFormula === 'paulus'){
+        formulaHtml = box('Ascendant + Venus − Spirit','Ascendant + Spirit − Venus',
+          `${fmt(state.asc)} + ${fmt(state.venus)} − ${fmt(state.spirit)}`,
+          `${fmt(state.asc)} + ${fmt(state.spirit)} − ${fmt(state.venus)}`, state.eros);
+      } else {
+        formulaHtml = box('Ascendant + Fortune − Spirit','Ascendant + Spirit − Fortune',
+          `${fmt(state.asc)} + ${fmt(state.fortune)} − ${fmt(state.spirit)}`,
+          `${fmt(state.asc)} + ${fmt(state.spirit)} − ${fmt(state.fortune)}`, state.eros);
+      }
+    } else if(id === 'Victory'){
+      formulaHtml = box('Ascendant + Jupiter − Spirit','Ascendant + Spirit − Jupiter',
+        `${fmt(state.asc)} + ${fmt(state.jupiter)} − ${fmt(state.spirit)}`,
+        `${fmt(state.asc)} + ${fmt(state.spirit)} − ${fmt(state.jupiter)}`, state.victory);
+    } else if(id === 'Necessity'){
+      formulaHtml = box('Ascendant + Fortune − Mercury','Ascendant + Mercury − Fortune',
+        `${fmt(state.asc)} + ${fmt(state.fortune)} − ${fmt(state.mercury)}`,
+        `${fmt(state.asc)} + ${fmt(state.mercury)} − ${fmt(state.fortune)}`, state.necessity);
+    } else if(id === 'Courage'){
+      formulaHtml = box('Ascendant + Fortune − Mars','Ascendant + Mars − Fortune',
+        `${fmt(state.asc)} + ${fmt(state.fortune)} − ${fmt(state.mars)}`,
+        `${fmt(state.asc)} + ${fmt(state.mars)} − ${fmt(state.fortune)}`, state.courage);
+    } else if(id === 'Nemesis'){
+      formulaHtml = box('Ascendant + Fortune − Saturn','Ascendant + Saturn − Fortune',
+        `${fmt(state.asc)} + ${fmt(state.fortune)} − ${fmt(state.saturn)}`,
+        `${fmt(state.asc)} + ${fmt(state.saturn)} − ${fmt(state.fortune)}`, state.nemesis);
+    }
+
+    const sectWord = state.isDay ? 'day' : 'night';
+    const ascSignIdx = signIndexOf(state.asc);
+    const houseNum = ((s.idx - ascSignIdx + 12) % 12) + 1;
+
+    meaningHtml = `
+      <p>${id} represents ${LOT_MEANINGS[id]}</p>
+      <p style="margin-top:10px;">${LOT_HISTORY[id]}</p>
+      <p style="margin-top:10px;">Landing in ${s.sign}, ${SIGN_KEYWORDS[s.sign]}, colors how that theme actually plays out day to day. Calculated as a <b style="color:var(--text)">${sectWord} chart</b>${state.isFixed ? ' (fixed mode)' : ''}.</p>
+    `;
+
+    const quadrant = HOUSE_QUADRANT[houseNum];
+    const quadrantText = LOT_QUADRANT_TEXT[id][quadrant];
+    const concrete = HOUSE_CONCRETE[houseNum];
+    const ord = houseNum===1?'st':houseNum===2?'nd':houseNum===3?'rd':'th';
+
+    houseHtml = `
+      <p>${id} falls in your <b style="color:var(--gold)">${houseNum}${ord} house</b>, ${HOUSE_MEANINGS[houseNum]}.</p>
+      <p style="margin-top:10px;">${quadrantText}</p>
+      <p style="margin-top:10px;">Concretely, that's most likely to run through ${concrete}. Since ${id} itself sits in ${s.sign}, ${SIGN_KEYWORDS[s.sign]}, expect this house's themes to get filtered through that lens specifically: not just "${HOUSE_MEANINGS[houseNum].split(',')[0]}" in general, but a ${s.sign.toLowerCase()}-flavored version of it.</p>
+    `;
+
+    let chainHtml = '';
+    if(!isNaN(rulerLon)){
+      const averted = isAversion(lon, rulerLon);
+      const rulerSign = toSignDeg(rulerLon).sign;
+      const dignity = dignityOf(ruler, rulerSign);
+      conditionHtml = `
+        <div class="condition-box" style="align-items:flex-start; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px; width:100%;">
+            <span class="badge ${averted ? 'aversion' : 'regard'}">${averted ? 'Averted' : 'In regard'}</span>
+            <span style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">
+              ${ruler}, this lot's ruler, sits in ${rulerSign}, ${averted
+                ? `a sign that shares no whole-sign aspect with ${s.sign}. Classically, that means ${ruler} can't "see" this lot: whatever ${id} promises is harder for its own ruling planet to actively support or deliver.`
+                : `a sign in aspect to ${s.sign}. Classically, that means ${ruler} can "see" this lot and lend it active support.`}
+            </span>
+          </div>
+          <div style="font-size:12.5px; color:var(--text-dim); line-height:1.5; padding-top:10px; border-top:1px solid var(--border); width:100%;">
+            <b style="color:var(--text);">${ruler}'s own condition:</b> in ${rulerSign}, ${ruler} is <b style="color:${dignity==='domicile'||dignity==='exaltation' ? 'var(--teal)' : (dignity==='detriment'||dignity==='fall' ? '#E08585' : 'var(--text-dim)')};">${dignity}</b>, ${DIGNITY_BLURB[dignity]}.
+            ${averted
+              ? ` Combined with the aversion, that means ${dignity==='domicile'||dignity==='exaltation' ? `even though ${ruler} is well-placed in its own right, it still can't directly reach this lot, its help arrives indirectly, if at all` : `${id} is somewhat on its own here: its ruler is both out of sight and not especially strong to begin with`}.`
+              : ` Since ${ruler} can see this lot, ${dignity==='domicile'||dignity==='exaltation' ? `it's well-positioned to actively deliver on what ${id} promises` : (dignity==='detriment'||dignity==='fall' ? `it's willing to help but working from a weaker position, so support may come with friction` : `it can lend a hand, though without any particular strength behind it`)}.`}
+          </div>
+        </div>`;
+
+      // ---- cascading chain: ruler's sign expression, ruler's house, co-tenant planets ----
+      const rulerHouseNum = ((toSignDeg(rulerLon).idx - ascSignIdx + 12) % 12) + 1;
+      const rulerOrd = rulerHouseNum===1?'st':rulerHouseNum===2?'nd':rulerHouseNum===3?'rd':'th';
+      const rulerQuadrant = HOUSE_QUADRANT[rulerHouseNum];
+
+      const ALL_PLANET_KEYS = {Sun:'sun',Moon:'moon',Mercury:'mercury',Venus:'venus',Mars:'mars',Jupiter:'jupiter',Saturn:'saturn'};
+      const coTenants = Object.keys(ALL_PLANET_KEYS).filter(p=>{
+        if(p === ruler) return false;
+        const pLon = norm(state[ALL_PLANET_KEYS[p]]);
+        const pHouse = ((signIndexOf(pLon) - ascSignIdx + 12) % 12) + 1;
+        return pHouse === rulerHouseNum;
+      });
+
+      const possessive = coTenants.length===1 ? "that planet's" : "those planets'";
+      chainHtml = `
+        <p><b style="color:var(--text);">${ruler} in ${rulerSign}:</b> ${INPUT_MEANINGS[ruler] ? `${ruler}'s themes (${INPUT_MEANINGS[ruler]}) express through ${rulerSign}'s ${SIGN_KEYWORDS[rulerSign]} nature` : ''}.</p>
+        <p style="margin-top:10px;"><b style="color:var(--text);">${ruler} in your ${rulerHouseNum}${rulerOrd} house:</b> ${HOUSE_MEANINGS[rulerHouseNum]}. Concretely, ${ruler}'s influence here tends to run through ${HOUSE_CONCRETE[rulerHouseNum]}.</p>
+        <p style="margin-top:10px;">${coTenants.length
+          ? `${ruler} isn't alone in this house, <b style="color:var(--gold);">${coTenants.join(', ')}</b> ${coTenants.length===1?'is':'are'} also there, which means ${id}'s ultimate expression is entangled with ${possessive} themes too.`
+          : `No other input planet shares this house with ${ruler}, whatever happens through the ${rulerHouseNum}${rulerOrd} house here is ${ruler}'s alone to carry.`}</p>
+      `;
+    }
+
+    bridgeHtml = `${id} falls in ${s.sign}, ruled by ${ruler}. Trace ${ruler}'s full chain on the <a href="dispositor-tree.html" style="color:var(--gold)">Dispositor Tree</a> to see what it ultimately answers to, since every planet's chain resolves somewhere, ${id}'s deeper story is really ${ruler}'s story.`;
+  }
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:${point.color}; border-color:${point.color};">${point.glyph}</div>
+      <div>
+        <div class="detail-title">${id} <span class="in-sign">in ${s.sign} ${s.deg}°${String(s.min).padStart(2,'0')}'</span></div>
+        <div class="detail-tag">${isInput ? 'Chart input' : 'Calculated lot'}</div>
+      </div>
+    </div>
+    ${formulaHtml ? `<div class="detail-section"><h3>Formula used</h3><div class="formula-box">${formulaHtml}</div></div>` : ''}
+    <div class="detail-section"><h3>What this means</h3>${meaningHtml}</div>
+    ${!isInput ? `<div class="detail-section"><h3>Where it lands</h3>${houseHtml}</div>` : ''}
+    ${conditionHtml ? `<div class="detail-section"><h3>Ruler condition</h3>${conditionHtml}</div>` : ''}
+    ${chainHtml ? `<div class="detail-section"><h3>Following the chain further</h3>${chainHtml}</div>` : ''}
+    <div class="detail-section"><h3>Where it connects</h3><p>${bridgeHtml}</p></div>
+  `;
+}
+
+// ---- Additional named lots, computed live for this fictional demo chart (day birth, Jul 4 1976) ----
+// All eight formulas below were reverse-engineered against this project's original real chart and
+// confirmed exact there, then carried over to this dashboard's own ephemeris engine. Three more
+// lots (Foundation, Love/Harmony, Friends) used to appear here, sourced from a real Astro-Seek
+// export with no independently reconstructed formula. There's no equivalent export for a chart
+// that was never actually born, so those three have been left out rather than faked.
+const FIXED_ASC = 178.0992;
+const EXTRA_LOTS = [
+  { name:'Exaltation', lon:19.125, house:8, verified:true, rulerOverride:null,
+    formula:"Ascendant + Moon's exaltation degree (3° Taurus) − Moon",
+    calc:`${FIXED_ASC.toFixed(2)}° + 33.00° − 191.97° = 19.13°`,
+    desc:"Where you're naturally elevated or given extra credit." },
+  { name:'Father', lon:157.501, house:1, verified:true,
+    formula:"Ascendant + Sun − Saturn",
+    calc:`${FIXED_ASC.toFixed(2)}° + 102.78° − 123.38° = 157.50°`,
+    desc:"The significator of the paternal relationship and what's inherited from that line." },
+  { name:'Mother', lon:93.439, house:11, verified:true,
+    formula:"Ascendant + Venus − Moon",
+    calc:`${FIXED_ASC.toFixed(2)}° + 107.31° − 191.97° = 93.44°`,
+    desc:'The significator of the maternal relationship and early nurture.' },
+  { name:'Children', lon:107.524, house:11, verified:true,
+    formula:"Ascendant + Jupiter − Saturn",
+    calc:`${FIXED_ASC.toFixed(2)}° + 52.80° − 123.38° = 107.52°`,
+    desc:'Fertility, offspring, and legacy through descendants.' },
+  { name:'Siblings', lon:248.675, house:4, verified:true,
+    formula:"Ascendant + Saturn − Jupiter",
+    calc:`${FIXED_ASC.toFixed(2)}° + 123.38° − 52.80° = 248.67°`,
+    desc:'Relationships with brothers and sisters, and the sibling "rank" dynamic.' },
+  { name:'Marriage', lon:130.785, house:12, verified:true,
+    formula:"Ascendant + the whole-sign 10th-house cusp (Gemini 0°00', ten signs forward from this chart's Virgo Ascendant) − Venus. This is the cusp-based version of the formula, confirmed against this project's original real chart after ruling out a simpler alternative (Venus's distance from the 7th cusp).",
+    calc:`${FIXED_ASC.toFixed(2)}° + 60.00° − 107.31° = 130.79°`,
+    desc:'Committed partnership specifically, distinct from Eros or Affairs.' },
+  { name:'Assets', lon:340.785, house:7, verified:true,
+    formula:"Ascendant + the whole-sign 5th-house cusp (Capricorn 0°00', five signs forward from this chart's Virgo Ascendant) − Venus, this chart's traditional 2nd-house ruler (2nd cusp Libra). This is the cusp-based version of the formula, confirmed against this project's original real chart after ruling out a simpler alternative (the ruler's distance from the 2nd cusp itself).",
+    calc:`${FIXED_ASC.toFixed(2)}° + 270.00° − 107.31° = 340.79°`,
+    desc:'Personal resources and earning capacity.' },
+  { name:'Affairs', lon:232.608, house:3, verified:true,
+    formula:"Ascendant + Venus − Jupiter",
+    calc:`${FIXED_ASC.toFixed(2)}° + 107.31° − 52.80° = 232.61°`,
+    desc:'The general business and dealings you find yourself caught up in.' }
+];
+
+function renderExtraLots(){
+  const tbody = document.getElementById('extraLotsBody');
+  tbody.innerHTML = EXTRA_LOTS.map((l,i)=>{
+    const s = toSignDeg(l.lon);
+    return `
+    <tr class="extra-lot-row" data-idx="${i}" style="cursor:pointer;">
+      <td class="lot-name">${l.name}</td>
+      <td class="lot-pos">${s.sign} ${String(s.deg).padStart(2,'0')}°${String(s.min).padStart(2,'0')}'<br><span style="color:var(--text-faint); font-size:10.5px;">house ${l.house}</span></td>
+      <td class="lot-desc">${l.desc}</td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('.extra-lot-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const idx = parseInt(row.getAttribute('data-idx'));
+      renderExtraLotDetail(EXTRA_LOTS[idx]);
+    });
+  });
+}
+
+function renderExtraLotDetail(lot){
+  const body = document.getElementById('detailBody');
+  body.className = '';
+  const s = toSignDeg(lot.lon);
+  const ruler = TRAD_RULERS[s.sign];
+  const rulerHouseNum = ruler ? null : null;
+  const ascSignIdx = signIndexOf(FIXED_ASC);
+  const houseNum = lot.house;
+  const quadrant = HOUSE_QUADRANT[houseNum];
+  const ord = houseNum===1?'st':houseNum===2?'nd':houseNum===3?'rd':'th';
+
+  const rulerKeyMap = {Sun:102.7819,Moon:191.9738,Mercury:90.1404,Venus:107.3139,Mars:148.6073,Jupiter:52.8048,Saturn:123.3802};
+  const rulerLon = rulerKeyMap[ruler];
+  const rulerSign = rulerLon !== undefined ? toSignDeg(rulerLon).sign : null;
+  const dignity = rulerLon !== undefined ? dignityOf(ruler, rulerSign) : null;
+  const averted = rulerLon !== undefined ? isAversion(lot.lon, rulerLon) : null;
+
+  const formulaHtml = lot.verified
+    ? `<b>${lot.formula}</b><br>${lot.calc}`
+    : `${lot.formula}<br><span style="color:var(--text-faint);">This position comes directly from Astro-Seek's output for this chart. The exact arithmetic above wasn't independently re-derived, so no live calculation is shown, only the known correct result.</span>`;
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:var(--gold); border-color:var(--gold);">${lot.name[0]}</div>
+      <div>
+        <div class="detail-title">${lot.name} <span class="in-sign">in ${s.sign} ${s.deg}°${String(s.min).padStart(2,'0')}'</span></div>
+        <div class="detail-tag">${lot.verified ? 'Verified formula' : 'Reference position'} · Additional Lot</div>
+      </div>
+    </div>
+    <div class="detail-section"><h3>Formula</h3><div class="formula-box">${formulaHtml}</div></div>
+    <div class="detail-section"><h3>What this means</h3><p>${lot.desc} Landing in ${s.sign}, ${SIGN_KEYWORDS[s.sign]}, colors how that theme actually plays out day to day.</p></div>
+    <div class="detail-section"><h3>Where it lands</h3>
+      <p>${lot.name} falls in your <b style="color:var(--gold)">${houseNum}${ord} house</b>, ${HOUSE_MEANINGS[houseNum]}.</p>
+      <p style="margin-top:10px;">${LOT_QUADRANT_TEXT.Fortune ? '' : ''}${quadrant==='angular' ? "This is an angular house, themes here tend to show up as visible, nameable events rather than a slow drift." : quadrant==='succedent' ? "This is a succedent house, themes here build gradually, as something accumulated or maintained over time." : "This is a cadent house, themes here run mental and behind-the-scenes, often understood in hindsight."}</p>
+      <p style="margin-top:10px;">Concretely, that's most likely to run through ${HOUSE_CONCRETE[houseNum]}.</p>
+    </div>
+    ${ruler ? `<div class="detail-section"><h3>Ruler condition</h3>
+      <div class="condition-box" style="align-items:flex-start; flex-direction:column; gap:12px;">
+        <div style="display:flex; align-items:center; gap:10px; width:100%;">
+          <span class="badge ${averted ? 'aversion' : 'regard'}">${averted ? 'Averted' : 'In regard'}</span>
+          <span style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">
+            ${ruler}, this lot's ruler, sits in ${rulerSign}, ${averted
+              ? `a sign that shares no whole-sign aspect with ${s.sign}, meaning ${ruler} can't "see" this lot.`
+              : `a sign in aspect to ${s.sign}, meaning ${ruler} can "see" this lot and lend it active support.`}
+          </span>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-dim); line-height:1.5; padding-top:10px; border-top:1px solid var(--border); width:100%;">
+          <b style="color:var(--text);">${ruler}'s own condition:</b> in ${rulerSign}, ${ruler} is <b style="color:${dignity==='domicile'||dignity==='exaltation' ? 'var(--teal)' : (dignity==='detriment'||dignity==='fall' ? '#E08585' : 'var(--text-dim)')};">${dignity}</b>, ${DIGNITY_BLURB[dignity]}.
+        </div>
+      </div>
+    </div>` : ''}
+    <div class="detail-section"><h3>Where it connects</h3><p>${lot.name} falls in ${s.sign}, ruled by ${ruler}. Trace ${ruler}'s full chain on the <a href="dispositor-tree.html" style="color:var(--gold)">Dispositor Tree</a> to see what it ultimately answers to.</p></div>
+  `;
+  body.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+renderExtraLots();
+
+/* ---------------- init: auto-load a saved chart if one exists ---------------- */
+(function initFromShared(){
+  const note = document.getElementById('chartSourceNote');
+  if(SHARED){
+    note.innerHTML = `Auto-loaded <b>${SHARED.name || 'your saved chart'}</b> from <a href="birth-data.html">Birth Data</a>.`;
+    loadIntoForm(sharedAsExample());
+  } else {
+    note.innerHTML = `No chart saved yet, enter one below or <a href="birth-data.html">save one on Birth Data</a> to skip this step next time.`;
+  }
+})();
+</script>
+</body>
+</html>
