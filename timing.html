@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Lords</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020203; --panel:#0E0E13; --panel-2:#141419; --border:#26262E;
+    --text:#F1EDE4; --text-dim:#ABA8AE; --text-faint:#605D66;
+    --gold:#D9A94E; --teal:#5FB8AC; --violet:#9A8CD6; --edge:#38363E; --input-bg:#17161C;
+    --amber:#D9924E;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#020203;
+    color:var(--text); font-family:'Inter', sans-serif; min-height:100vh; padding:20px 14px 60px;
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  .nebula{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .nebula span{position:absolute; border-radius:50%; filter:blur(90px); opacity:0.16;}
+  .neb1{width:520px; height:520px; background:#5B3FA0; top:-160px; left:-120px;}
+  .neb2{width:460px; height:460px; background:#1E6B63; top:30%; right:-160px;}
+  .neb3{width:420px; height:420px; background:#7A4B2E; bottom:-140px; left:20%;}
+  .neb4{width:380px; height:380px; background:#2C3E82; bottom:10%; right:10%;}
+  .wrap{position:relative; z-index:1; max-width:1180px;margin:0 auto;}
+  .breadcrumb{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+  .breadcrumb a{color:var(--text-dim); text-decoration:none;}
+  .breadcrumb a:hover{color:var(--gold);}
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); margin-bottom:8px;}
+  h1{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,4vw,36px); margin:0 0 6px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:14px; max-width:700px; line-height:1.6;}
+
+  .tab-row{display:flex; gap:8px; margin:22px 0 18px; flex-wrap:wrap;}
+  .tab-btn{
+    font-family:'Fraunces', serif; font-size:14.5px; padding:10px 18px; border-radius:10px;
+    background:var(--panel); border:1px solid var(--border); color:var(--text-dim); cursor:pointer;
+    transition:all .18s ease;
+  }
+  .tab-btn.active{background:var(--panel-2); border-color:var(--amber); color:var(--text);}
+  .tab-btn .status{font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--text-faint); display:block; margin-top:2px; letter-spacing:.05em;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:18px;}
+  .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:18px; margin:0 0 8px;}
+  .panel .hint{font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.65; max-width:760px;}
+
+  .toggle-row{display:inline-flex; background:var(--input-bg); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:16px;}
+  .toggle-row button{background:transparent; border:none; color:var(--text-dim); font-family:'Inter'; font-size:12px; font-weight:500; padding:8px 14px; border-radius:7px; cursor:pointer; transition:all .15s ease;}
+  .toggle-row button.active{background:var(--amber); color:#1F1409;}
+
+  .timeline{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:10px; margin-top:6px;}
+  .period-card{
+    background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:13px 14px;
+    cursor:pointer; transition:border-color .15s ease; position:relative;
+  }
+  .period-card:hover{border-color:var(--amber);}
+  .period-card.current{border-color:var(--gold); background:#1A1610;}
+  .period-card.current::before{
+    content:'NOW'; position:absolute; top:-8px; right:10px; background:var(--gold); color:#1a1406;
+    font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:700; padding:2px 7px; border-radius:10px; letter-spacing:.05em;
+  }
+  .period-card .pname{font-family:'Fraunces', serif; font-size:15.5px; color:var(--text); display:flex; align-items:center; gap:6px;}
+  .period-card .pdates{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--amber); margin-top:5px;}
+  .period-card .pmeta{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-faint); margin-top:3px;}
+
+  .detail-panel{max-width:760px; margin:18px auto 0;}
+  .detail-empty{color:var(--text-faint); font-size:13px; line-height:1.6;}
+  .detail-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .detail-glyph{width:44px; height:44px; border-radius:50%; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .detail-title{font-family:'Fraunces', serif; font-weight:500; font-size:20px;}
+  .detail-title .accent{color:var(--amber);}
+  .detail-tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-top:3px;}
+  .detail-section{margin-bottom:24px; opacity:0; transform:translateY(6px); animation:riseIn .5s ease forwards;}
+  .detail-section:nth-of-type(1){animation-delay:.02s;}
+  .detail-section:nth-of-type(2){animation-delay:.08s;}
+  .detail-section:nth-of-type(3){animation-delay:.14s;}
+  .detail-section:nth-of-type(4){animation-delay:.20s;}
+  @keyframes riseIn{ to{ opacity:1; transform:translateY(0); } }
+  .detail-section h3{font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); margin:0 0 10px;}
+  .detail-section p{font-size:14.5px; line-height:1.8; color:var(--text); margin:0;}
+  .detail-section p + p{margin-top:12px;}
+  .sub-period-strip{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .sub-chip{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:5px 10px; border-radius:16px;
+    border:1px solid var(--border); background:var(--input-bg); color:var(--text-dim);
+  }
+  .sub-chip.now{border-color:var(--gold); color:var(--gold);}
+
+  footer{text-align:center; margin-top:28px; font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono', monospace;}
+
+  .chart-source-note{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-faint); margin-top:8px;}
+  .chart-source-note a{color:var(--amber); text-decoration:none;}
+  .chart-source-note a:hover{text-decoration:underline;}
+  .chart-source-note b{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div class="nebula"><span class="neb1"></span><span class="neb2"></span><span class="neb3"></span><span class="neb4"></span></div>
+<div class="wrap">
+  <div class="breadcrumb"><a href="dashboard.html">← Astrology Dashboard</a></div>
+
+  <header>
+    <div class="eyebrow">Chart Logic · Time Lords</div>
+    <h1>Which planet is running this chapter of your life</h1>
+    <p class="sub" id="headerSub">Every other page here reads your chart as a fixed structure. These three techniques ask a different question: not what a placement means, but <i>when</i> its themes take the lead. All three are computed live, not looked up from a table.</p>
+    <div class="chart-source-note" id="chartSourceNote"></div>
+  </header>
+
+  <div class="tab-row" id="tabRow"></div>
+
+  <div id="tabContent"></div>
+
+  <div class="panel detail-panel">
+    <div id="detailBody" class="detail-empty">Click any period card above to see the full breakdown.</div>
+  </div>
+
+  <footer>TIME LORDS · Annual Profections, Firdaria, Zodiacal Releasing · Hellenistic &amp; Medieval timing techniques, not a validated predictive method</footer>
+</div>
+
+<script>
+/* ---------------- starfield background ---------------- */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1+0.2, phase: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.8
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s=>{
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*0.0004*s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,215,240,${tw*0.85})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- chart data (Jul 4 1976, 12:00 EDT, Philadelphia PA) ---------------- */
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const SIGN_KEYWORDS = {
+  Aries:"initiating, direct, and quick to act", Taurus:"steady, sensory, and slow to move",
+  Gemini:"curious, communicative, and quick-shifting", Cancer:"protective, feeling-based, and cyclical",
+  Leo:"expressive, warm, and proud", Virgo:"precise, discerning, and service-minded",
+  Libra:"relational, balancing, and aesthetic", Scorpio:"intense, probing, and private",
+  Sagittarius:"expansive, philosophical, and blunt", Capricorn:"disciplined, structured, and patient",
+  Aquarius:"independent, unconventional, and idea-driven", Pisces:"dreamy, boundaryless, and empathic"
+};
+const TRAD_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Mars",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Saturn",Pisces:"Jupiter"};
+const MODERN_RULERS = {Aries:"Mars",Taurus:"Venus",Gemini:"Mercury",Cancer:"Moon",Leo:"Sun",Virgo:"Mercury",Libra:"Venus",Scorpio:"Pluto",Sagittarius:"Jupiter",Capricorn:"Saturn",Aquarius:"Uranus",Pisces:"Neptune"};
+
+const PLANET_KEYWORDS = {
+  Sun:"identity, vitality, and conscious will", Moon:"emotional need, instinct, and what makes you feel safe",
+  Mercury:"thought, perception, and communication", Venus:"what you value and what you're drawn to",
+  Mars:"drive, assertion, and how you go after what you want", Jupiter:"expansion, meaning-making, and where you seek growth",
+  Saturn:"structure, responsibility, and where you build discipline", Uranus:"independence, disruption, and sudden insight",
+  Neptune:"imagination, dissolution, and idealism", Pluto:"transformation, power, and what runs at the depths",
+  'North Node':"the direction you're growing toward, unfamiliar but purposeful",
+  'South Node':"the comfort zone, the innate talent you default to"
+};
+const HOUSE_MEANINGS = {
+  1:"the body, appearance, and how you initiate", 2:"resources, income, and what you hold onto",
+  3:"communication, siblings, and everyday learning", 4:"home, family roots, and your private foundation",
+  5:"creativity, romance, children, and pleasure", 6:"daily work, health routines, and service",
+  7:"partnership, marriage, contracts, significant others", 8:"shared resources, intimacy, and transformation",
+  9:"belief, higher education, and long travel", 10:"career, public reputation, and the role you're known for",
+  11:"friendship, community, and hopes for the future", 12:"the unconscious, isolation, and what stays hidden"
+};
+
+/* ---------------- shared chart (single source of truth, see birth-data.html) ---------------- */
+const SHARED_CHART_KEY = 'astroDashboardChart';
+function loadSharedChart(){
+  try{
+    const raw = localStorage.getItem(SHARED_CHART_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.points) ? parsed : null;
+  }catch(e){ return null; }
+}
+const SHARED = loadSharedChart();
+function signOfLon(lon){ const x=((lon%360)+360)%360; return SIGNS[Math.floor(x/30)%12]; }
+function houseOfLon(lon, ascIdxLocal){ return ((SIGNS.indexOf(signOfLon(lon))-ascIdxLocal+12)%12)+1; }
+function buildBirthDate(chart){
+  if(!chart.birthDate) return null;
+  const time = chart.birthTime || '12:00';
+  const offset = (chart.utcOffset && /^[+-]\d{2}:\d{2}$/.test(chart.utcOffset)) ? chart.utcOffset : 'Z';
+  const d = new Date(`${chart.birthDate}T${time}:00${offset}`);
+  return isNaN(d.getTime()) ? null : d;
+}
+function buildNatalFromShared(chart){
+  const P = chart.points;
+  const ascSign = signOfLon(P.Ascendant);
+  const ascIdxLocal = SIGNS.indexOf(ascSign);
+  const southNodeLon = norm(P.NorthNode + 180);
+  const entries = {
+    Sun:P.Sun, Moon:P.Moon, Mercury:P.Mercury, Venus:P.Venus, Mars:P.Mars, Jupiter:P.Jupiter,
+    Saturn:P.Saturn, Uranus:P.Uranus, Neptune:P.Neptune, Pluto:P.Pluto,
+    'North Node':P.NorthNode, 'South Node':southNodeLon
+  };
+  const natal = {};
+  Object.keys(entries).forEach(k=> natal[k] = { sign: signOfLon(entries[k]), house: houseOfLon(entries[k], ascIdxLocal) });
+  return { natal, ascSign };
+}
+function norm(d){ let x=d%360; if(x<0)x+=360; return x; }
+
+// Full natal placements (sign + house), computed from this dashboard's own ephemeris engine. Fictional
+// demo reference chart, used only when nothing is saved on the Birth Data page.
+const REFERENCE_NATAL = {
+  Sun:{sign:'Cancer', house:11}, Moon:{sign:'Libra', house:2}, Mercury:{sign:'Cancer', house:11},
+  Venus:{sign:'Cancer', house:11}, Mars:{sign:'Leo', house:12}, Jupiter:{sign:'Taurus', house:9},
+  Saturn:{sign:'Leo', house:12}, Uranus:{sign:'Scorpio', house:3}, Neptune:{sign:'Sagittarius', house:4},
+  Pluto:{sign:'Libra', house:2}, 'North Node':{sign:'Scorpio', house:3}, 'South Node':{sign:'Taurus', house:9}
+};
+const REFERENCE_ASC_SIGN = 'Virgo';
+const REFERENCE_BIRTH = new Date('1976-07-04T12:00:00-04:00');
+const REFERENCE_SECT = 'day';
+
+const sharedBuilt = SHARED ? buildNatalFromShared(SHARED) : null;
+const NATAL = sharedBuilt ? sharedBuilt.natal : REFERENCE_NATAL;
+const ASC_SIGN = sharedBuilt ? sharedBuilt.ascSign : REFERENCE_ASC_SIGN;
+const ASC_IDX = SIGNS.indexOf(ASC_SIGN);
+const BIRTH = SHARED ? (buildBirthDate(SHARED) || REFERENCE_BIRTH) : REFERENCE_BIRTH;
+const SECT = SHARED ? (SHARED.sect || 'night') : REFERENCE_SECT;
+const NOW = new Date();
+const AGE_NOW = (NOW - BIRTH) / (365.2425*24*3600*1000);
+
+function ordinal(n){ n=Math.round(n); return n+ (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th'); }
+function addYears(date, years){ return new Date(date.getTime() + years*365.2425*24*3600*1000); }
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+
+let rulerSystem = 'traditional';
+let currentTab = 'profections';
+let currentZRSource = 'fortune';
+
+/* ---------------- planet chain narrative (shared across all three techniques) ---------------- */
+function planetChainHtml(planetName, roleLabel){
+  const natal = NATAL[planetName];
+  if(!natal){
+    return `<p>${planetName} completes the traditional list of time-lords, though it isn't tracked elsewhere on this dashboard yet.</p>`;
+  }
+  const dom = PLANET_KEYWORDS[planetName] || '';
+  return `
+    <p><b style="color:var(--text);">${roleLabel}: ${planetName}</b>, natally in ${natal.sign} in your ${ordinal(natal.house)} house. ${planetName} itself governs ${dom}, during this period, that's the lens everything gets filtered through.</p>
+    <p style="margin-top:10px;">${planetName} in ${natal.sign} means ${planetName.toLowerCase()==='north node'||planetName.toLowerCase()==='south node' ? 'this axis' : 'it'} expresses in a ${SIGN_KEYWORDS[natal.sign]} way. Landing in your ${ordinal(natal.house)} house, ${HOUSE_MEANINGS[natal.house]}, means this period's themes are most likely to show up concretely through that life area specifically, more than any other.</p>
+  `;
+}
+
+/* ================= 1. ANNUAL PROFECTIONS ================= */
+function profectedSign(age){ return SIGNS[(ASC_IDX + Math.floor(age)) % 12]; }
+
+function renderProfections(){
+  const host = document.getElementById('tabContent');
+  const currentAge = Math.floor(AGE_NOW);
+  const startAge = Math.max(0, currentAge - 3);
+
+  let html = `
+    <div class="panel">
+      <h2>Annual Profections</h2>
+      <div class="hint">Each year of life, the chart symbolically rotates one house forward from the Ascendant. Whatever sign lands on the 1st house that year has its ruler crowned "Lord of the Year", the planet whose themes color everything else. It's the simplest of the three techniques here, and arguably the most immediately useful: one ruling idea per year, no sub-periods.</div>
+      <div class="toggle-row" id="profRulerToggle">
+        <button data-sys="traditional" class="active">Traditional rulers</button>
+        <button data-sys="modern">Modern rulers</button>
+      </div>
+      <div class="timeline" id="profTimeline"></div>
+    </div>
+  `;
+  host.innerHTML = html;
+
+  document.querySelectorAll('#profRulerToggle button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      rulerSystem = btn.getAttribute('data-sys');
+      document.querySelectorAll('#profRulerToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+      renderProfectionsTimeline();
+    });
+  });
+  renderProfectionsTimeline();
+}
+
+function renderProfectionsTimeline(){
+  const currentAge = Math.floor(AGE_NOW);
+  const startAge = Math.max(0, currentAge - 3);
+  const rulers = rulerSystem === 'traditional' ? TRAD_RULERS : MODERN_RULERS;
+  let cards = '';
+  for(let age=startAge; age<=currentAge+5; age++){
+    const sign = profectedSign(age);
+    const lord = rulers[sign];
+    const isNow = age === currentAge;
+    const yearDate = addYears(BIRTH, age);
+    cards += `
+      <div class="period-card ${isNow?'current':''}" data-age="${age}" data-lord="${lord}" data-sign="${sign}">
+        <div class="pname">${SIGN_GLYPH[sign]} Age ${age}</div>
+        <div class="pdates">${fmtDate(yearDate)}</div>
+        <div class="pmeta">${sign} · Lord: ${lord}</div>
+      </div>`;
+  }
+  document.getElementById('profTimeline').innerHTML = cards;
+  document.querySelectorAll('#profTimeline .period-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const age = parseInt(card.getAttribute('data-age'));
+      const sign = card.getAttribute('data-sign');
+      const lord = card.getAttribute('data-lord');
+      renderProfectionDetail(age, sign, lord);
+    });
+  });
+}
+
+function renderProfectionDetail(age, sign, lord){
+  const body = document.getElementById('detailBody');
+  body.className = '';
+  const yearDate = addYears(BIRTH, age);
+  const nextDate = addYears(BIRTH, age+1);
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:var(--amber); border-color:var(--amber);">${SIGN_GLYPH[sign]}</div>
+      <div>
+        <div class="detail-title">Age <span class="accent">${age}</span> Profection</div>
+        <div class="detail-tag">${fmtDate(yearDate)} → ${fmtDate(nextDate)} · profected to ${sign}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>How this year is chosen</h3>
+      <p>Age ${age} profects ${age} signs forward from your Ascendant (${ASC_SIGN}), landing on <b style="color:var(--gold);">${sign}</b>. ${sign}'s ruler, <b style="color:var(--gold);">${lord}</b>, becomes this year's Lord, the planet whose natal condition sets the tone for these twelve months.</p>
+    </div>
+    <div class="detail-section">
+      <h3>This year's Lord</h3>
+      ${planetChainHtml(lord, 'Lord of the Year')}
+    </div>
+    <div class="detail-section">
+      <h3>Where it connects</h3>
+      <p>${lord}'s own dispositor chain, what it ultimately answers to, is on the <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>. If ${lord} rules one of your calculated lots, its condition this year is doubly relevant, check the <a href="lots.html" style="color:var(--gold);">Lots</a> page.</p>
+    </div>
+  `;
+  document.getElementById('detailBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ================= 2. FIRDARIA ================= */
+// Night order starts from the Moon, day order starts from the Sun, both cycle through the same
+// seven planets in the same relative sequence (night is day rotated to start at the Moon), then
+// both close with the two nodes. This project's reference chart is a night chart, so this bug
+// (a single hardcoded order) was invisible until the shared chart made a day-sect user possible.
+const FIRDARIA_ORDER_NIGHT = ['Moon','Saturn','Jupiter','Mars','Sun','Venus','Mercury','North Node','South Node'];
+const FIRDARIA_ORDER_DAY = ['Sun','Venus','Mercury','Moon','Saturn','Jupiter','Mars','North Node','South Node'];
+const FIRDARIA_ORDER = SECT === 'day' ? FIRDARIA_ORDER_DAY : FIRDARIA_ORDER_NIGHT;
+const FIRDARIA_YEARS = {Moon:9,Saturn:11,Jupiter:12,Mars:7,Sun:10,Venus:8,Mercury:13,'North Node':3,'South Node':2};
+const FIRDARIA_TOTAL = 75;
+
+function buildFirdariaPeriods(maxAge){
+  const periods = [];
+  let age = 0;
+  let cycle = 0;
+  while(age < maxAge){
+    FIRDARIA_ORDER.forEach(p=>{
+      if(age >= maxAge) return;
+      const years = FIRDARIA_YEARS[p];
+      periods.push({ planet:p, startAge:age, endAge:age+years, cycle });
+      age += years;
+    });
+    cycle++;
+  }
+  return periods;
+}
+
+function renderFirdaria(){
+  const host = document.getElementById('tabContent');
+  host.innerHTML = `
+    <div class="panel">
+      <h2>Firdaria</h2>
+      <div class="hint">A Persian medieval technique that divides the whole life into consecutive planetary reigns, no rotation, just one long relay race through the seven planets and the two lunar nodes. The order depends on sect: night charts start with the Moon, day charts start with the Sun. This chart is a ${SECT} chart, so its order starts with ${FIRDARIA_ORDER[0]}. Each major period also breaks into 9 proportional sub-periods in the same order, giving a finer-grained "which planet is co-running things right now" reading.</div>
+      <div class="timeline" id="firdTimeline"></div>
+    </div>
+  `;
+  const periods = buildFirdariaPeriods(90);
+  const currentIdx = periods.findIndex(p => AGE_NOW >= p.startAge && AGE_NOW < p.endAge);
+  const cards = periods.map((p,i)=>{
+    const isNow = i === currentIdx;
+    const startDate = addYears(BIRTH, p.startAge);
+    return `
+      <div class="period-card ${isNow?'current':''}" data-idx="${i}">
+        <div class="pname">${p.planet}</div>
+        <div class="pdates">${fmtDate(startDate)}</div>
+        <div class="pmeta">age ${p.startAge}–${p.endAge} · ${(p.endAge-p.startAge)} yrs</div>
+      </div>`;
+  }).join('');
+  document.getElementById('firdTimeline').innerHTML = cards;
+  document.querySelectorAll('#firdTimeline .period-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const idx = parseInt(card.getAttribute('data-idx'));
+      renderFirdariaDetail(periods[idx], idx===currentIdx);
+    });
+  });
+}
+
+function renderFirdariaDetail(period, isCurrent){
+  const body = document.getElementById('detailBody');
+  body.className = '';
+  const startDate = addYears(BIRTH, period.startAge);
+  const endDate = addYears(BIRTH, period.endAge);
+
+  let subCumulative = period.startAge;
+  const startIdxInOrder = FIRDARIA_ORDER.indexOf(period.planet);
+  const subOrder = [...FIRDARIA_ORDER.slice(startIdxInOrder), ...FIRDARIA_ORDER.slice(0, startIdxInOrder)];
+  const majorYears = period.endAge - period.startAge;
+  let currentSub = null;
+  const subChips = subOrder.map(sp=>{
+    const subYears = (FIRDARIA_YEARS[sp]/FIRDARIA_TOTAL) * majorYears;
+    const subStart = subCumulative, subEnd = subCumulative + subYears;
+    const isNow = AGE_NOW >= subStart && AGE_NOW < subEnd;
+    if(isNow) currentSub = sp;
+    subCumulative = subEnd;
+    return `<span class="sub-chip ${isNow?'now':''}">${sp} (${subYears.toFixed(1)}y)</span>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:var(--amber); border-color:var(--amber);">${period.planet[0]}</div>
+      <div>
+        <div class="detail-title">${period.planet} <span class="accent">Major Period</span></div>
+        <div class="detail-tag">${fmtDate(startDate)} → ${fmtDate(endDate)} · age ${period.startAge}–${period.endAge}${isCurrent?' · CURRENT':''}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>This period's ruling planet</h3>
+      ${planetChainHtml(period.planet, 'Firdaria Lord')}
+    </div>
+    <div class="detail-section">
+      <h3>Sub-periods within this era</h3>
+      <p>Each major period subdivides into 9 shorter sub-periods, in the same fixed order, scaled to fit inside the ${majorYears}-year span. ${currentSub ? `You're currently in the <b style="color:var(--gold);">${currentSub}</b> sub-period.` : ''}</p>
+      <div class="sub-period-strip">${subChips}</div>
+    </div>
+    <div class="detail-section">
+      <h3>Where it connects</h3>
+      <p>Trace ${period.planet}'s full dispositor chain on the <a href="dispositor-tree.html" style="color:var(--gold);">Dispositor Tree</a>, and check whether it rules any of your <a href="lots.html" style="color:var(--gold);">Lots</a>, a Firdaria period ruled by a planet that's also a lot's ruler tends to make that lot's themes especially active.</p>
+    </div>
+  `;
+  document.getElementById('detailBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ================= 3. ZODIACAL RELEASING ================= */
+const MINOR_YEARS = {Aries:15,Taurus:8,Gemini:20,Cancer:25,Leo:19,Virgo:20,Libra:8,Scorpio:15,Sagittarius:12,Capricorn:30,Aquarius:30,Pisces:12};
+const ZR_START = { fortune:'Capricorn', spirit:'Virgo' };
+
+function buildZRPeriods(startSign, maxAge){
+  const periods = [];
+  let age = 0;
+  const startIdx = SIGNS.indexOf(startSign);
+  let i = 0;
+  while(age < maxAge){
+    const sign = SIGNS[(startIdx+i) % 12];
+    const years = MINOR_YEARS[sign];
+    periods.push({ sign, startAge:age, endAge:age+years });
+    age += years;
+    i++;
+  }
+  return periods;
+}
+
+function renderZR(){
+  const host = document.getElementById('tabContent');
+  host.innerHTML = `
+    <div class="panel">
+      <h2>Zodiacal Releasing</h2>
+      <div class="hint">Valens' technique for unfolding a lifetime narrative from a single point, usually Fortune (body, circumstance) or Spirit (career, purpose). Starting from that lot's sign, periods run forward through the zodiac in order, each lasting as many years as its ruling planet's classical "minor years." Unlike Firdaria, these periods don't repeat within a lifetime, a full lap of the zodiac this way takes 214 years.</div>
+      <div class="toggle-row" id="zrToggle">
+        <button data-src="fortune" class="active">From Fortune (Capricorn)</button>
+        <button data-src="spirit">From Spirit (Virgo)</button>
+      </div>
+      <div class="timeline" id="zrTimeline"></div>
+    </div>
+  `;
+  document.querySelectorAll('#zrToggle button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentZRSource = btn.getAttribute('data-src');
+      document.querySelectorAll('#zrToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+      renderZRTimeline();
+    });
+  });
+  renderZRTimeline();
+}
+
+function renderZRTimeline(){
+  const startSign = ZR_START[currentZRSource];
+  const periods = buildZRPeriods(startSign, 100);
+  const currentIdx = periods.findIndex(p => AGE_NOW >= p.startAge && AGE_NOW < p.endAge);
+  const rulers = rulerSystem === 'traditional' ? TRAD_RULERS : MODERN_RULERS;
+  const cards = periods.map((p,i)=>{
+    const isNow = i === currentIdx;
+    const startDate = addYears(BIRTH, p.startAge);
+    return `
+      <div class="period-card ${isNow?'current':''}" data-idx="${i}">
+        <div class="pname">${SIGN_GLYPH[p.sign]} ${p.sign}</div>
+        <div class="pdates">${fmtDate(startDate)}</div>
+        <div class="pmeta">age ${p.startAge}–${p.endAge} · ruler ${rulers[p.sign]}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('zrTimeline').innerHTML = cards;
+  document.querySelectorAll('#zrTimeline .period-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const idx = parseInt(card.getAttribute('data-idx'));
+      renderZRDetail(periods[idx], idx===currentIdx, startSign);
+    });
+  });
+}
+
+function renderZRDetail(period, isCurrent, startSign){
+  const body = document.getElementById('detailBody');
+  body.className = '';
+  const rulers = rulerSystem === 'traditional' ? TRAD_RULERS : MODERN_RULERS;
+  const ruler = rulers[period.sign];
+  const startDate = addYears(BIRTH, period.startAge);
+  const endDate = addYears(BIRTH, period.endAge);
+  const years = period.endAge - period.startAge;
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-glyph" style="color:var(--amber); border-color:var(--amber);">${SIGN_GLYPH[period.sign]}</div>
+      <div>
+        <div class="detail-title">${period.sign} <span class="accent">Period</span></div>
+        <div class="detail-tag">${fmtDate(startDate)} → ${fmtDate(endDate)} · age ${period.startAge}–${period.endAge} (${years} yrs)${isCurrent?' · CURRENT':''}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>Why this sign, this long</h3>
+      <p>Releasing from ${currentZRSource === 'fortune' ? 'Fortune' : 'Spirit'} (${startSign}), this period sits in ${period.sign}, ${SIGN_KEYWORDS[period.sign]}. Its length, ${years} years, comes directly from its ruler ${ruler}'s classical minor years, not from anything about this specific chart, the duration is fixed by the sign itself.</p>
+    </div>
+    <div class="detail-section">
+      <h3>This period's ruling planet</h3>
+      ${planetChainHtml(ruler, 'Period Lord')}
+    </div>
+    <div class="detail-section">
+      <h3>What this branch of the technique tracks</h3>
+      <p>${currentZRSource === 'fortune'
+        ? "Fortune-based releasing is read for the body, material circumstances, and the events that happen to you, this era's overall tone for what life hands you, independent of what you do about it."
+        : "Spirit-based releasing is read for career, purpose, and deliberate action, this era's overall tone for what you're actively building and pursuing."}</p>
+    </div>
+    <div class="detail-section">
+      <h3>A note on precision</h3>
+      <p>This shows Level 1 periods only. The full technique also computes Level 2 sub-periods within each one (and a special "loosing of the bond" rule for certain angular repeats), which get genuinely intricate and aren't implemented here. For that level of detail, Astro-Seek's own Zodiacal Releasing tool has it built in.</p>
+    </div>
+  `;
+  document.getElementById('detailBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------------- tabs ---------------- */
+const TABS = [
+  {id:'profections', label:'Annual Profections', status:'One rotation per year'},
+  {id:'firdaria', label:'Firdaria', status:'One long relay, 75-year cycle'},
+  {id:'zr', label:'Zodiacal Releasing', status:'Non-repeating, from Fortune/Spirit'}
+];
+function renderTabs(){
+  document.getElementById('tabRow').innerHTML = TABS.map(t=>`
+    <button class="tab-btn ${t.id===currentTab?'active':''}" data-tab="${t.id}">${t.label}<span class="status">${t.status}</span></button>
+  `).join('');
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentTab = btn.getAttribute('data-tab');
+      renderTabs();
+      renderCurrentTab();
+      document.getElementById('detailBody').className = 'detail-empty';
+      document.getElementById('detailBody').innerHTML = 'Click any period card above to see the full breakdown.';
+    });
+  });
+}
+function renderCurrentTab(){
+  if(currentTab === 'profections') renderProfections();
+  else if(currentTab === 'firdaria') renderFirdaria();
+  else renderZR();
+}
+
+/* ---------------- header + chart source note ---------------- */
+function fmtBirth(d){ return d ? d.toISOString().slice(0,10) : 'unknown date'; }
+document.getElementById('headerSub').innerHTML = `Every other page here reads your chart as a fixed structure. These three techniques ask a different question: not what a placement means, but <i>when</i> its themes take the lead. All three are computed live from your real Ascendant (${ASC_SIGN}), birth date (${fmtBirth(BIRTH)}), and sect (${SECT} birth), not looked up from a table.`;
+document.getElementById('chartSourceNote').innerHTML = SHARED
+  ? `Showing <b>${SHARED.name || 'your saved chart'}</b>, entered on <a href="birth-data.html">Birth Data</a>.`
+  : `Showing this dashboard's built-in reference chart, no chart saved yet, enter yours on <a href="birth-data.html">Birth Data</a>.`;
+
+renderTabs();
+renderCurrentTab();
+</script>
+</body>
+</html>
