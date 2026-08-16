@@ -87,9 +87,6 @@
 
 <div class="wrap">
   <div class="eyebrow">Your Chart, Mapped</div>
-  <h1>One birth, many maps</h1>
-  <p class="sub" id="headerSub">At the center is <b>you</b>. Around you, your planets and calculated points sit exactly where they fell that night. Further out, each glowing ring is a different way of reading what that means. Nothing here is separate, every thread you see is a real connection between what's close to the center and how it gets interpreted further out.</p>
-  <div class="data-banner" id="dataBanner"></div>
 
   <div class="map-stage">
     <svg id="mapSvg" viewBox="0 0 820 820"></svg>
@@ -366,14 +363,6 @@ const legend = [...BODIES, ...PAGES.map(p=>({id:p.name.replace('\n',' '), color:
   .map(b=>`<span><span class="dot" style="background:${b.color}"></span>${b.id}</span>`).join('');
 document.getElementById('legendRow').innerHTML = legend;
 
-/* ---------------- header + data banner ---------------- */
-if(SHARED){
-  document.getElementById('headerSub').innerHTML = `At the center is <b>${SHARED.name || 'you'}</b>${SHARED.birthDate ? `, ${SHARED.birthDate}` : ''}${SHARED.birthPlace ? `, ${SHARED.birthPlace}` : ''}. Around you, your planets and calculated points sit exactly where they fell at that moment. Further out, each glowing ring is a different way of reading what that means. Nothing here is separate, every thread you see is a real connection between what's close to the center and how it gets interpreted further out.`;
-  document.getElementById('dataBanner').innerHTML = `Showing <b>${SHARED.name || 'your saved chart'}</b>. Edit it, or clear it to go back to this dashboard's own reference chart, on <a href="birth-data.html">Birth Data</a>.`;
-} else {
-  document.getElementById('headerSub').innerHTML = `At the center is this dashboard's built-in reference chart, a fictional demo chart for Jul 4, 1976, 12:00 PM EDT, Philadelphia PA. Around you, its planets and calculated points sit exactly where they fell at that moment. Further out, each glowing ring is a different way of reading what that means. Nothing here is separate, every thread you see is a real connection between what's close to the center and how it gets interpreted further out.`;
-  document.getElementById('dataBanner').innerHTML = `This is a built-in reference chart, not yours. Enter your own birth data once on <a href="birth-data.html">Birth Data</a> and every page here, including this map, will read it automatically.`;
-}
 </script>
 </body>
 </html>
