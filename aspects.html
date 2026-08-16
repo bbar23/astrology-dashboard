@@ -37,7 +37,7 @@
   .sub{color:var(--text-dim); font-size:14px; max-width:680px; line-height:1.55;}
 
   .layout{display:grid; grid-template-columns:300px 1fr; gap:18px;}
-  @media (max-width: 880px){.layout{grid-template-columns:1fr;}}
+  @media (max-width: 880px){.layout{grid-template-columns:minmax(0,1fr);}}
 
   .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px;}
   .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:15px; margin:0 0 4px;}
@@ -47,7 +47,7 @@
   .field-row label{font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:78px;}
   .glyph{font-size:14px; width:22px; text-align:center; color:var(--rose);}
   input[type=number], input[type=date]{
-    flex:1; background:var(--input-bg); color:var(--text); border:1px solid var(--border);
+    flex:1; min-width:0; background:var(--input-bg); color:var(--text); border:1px solid var(--border);
     border-radius:7px; padding:6px 8px; font-family:'IBM Plex Mono', monospace; font-size:12px; width:100%;
   }
   input:focus{outline:2px solid var(--rose); outline-offset:1px;}
