@@ -37,7 +37,7 @@
   .sub{color:var(--text-dim); font-size:14px; max-width:680px; line-height:1.55;}
 
   .layout{display:grid; grid-template-columns:300px 1fr; gap:18px;}
-  @media (max-width: 880px){.layout{grid-template-columns:1fr;}}
+  @media (max-width: 880px){.layout{grid-template-columns:minmax(0,1fr);}}
 
   .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px;}
   .panel h2{font-family:'Fraunces', serif; font-weight:500; font-size:15px; margin:0 0 4px;}
@@ -47,7 +47,7 @@
   .field-row label{font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:78px;}
   .glyph{font-size:14px; width:22px; text-align:center; color:var(--gold);}
   input[type=number]{
-    flex:1; background:var(--input-bg); color:var(--text); border:1px solid var(--border);
+    flex:1; min-width:0; background:var(--input-bg); color:var(--text); border:1px solid var(--border);
     border-radius:7px; padding:6px 8px; font-family:'IBM Plex Mono', monospace; font-size:12px; width:100%;
   }
   input:focus{outline:2px solid var(--gold); outline-offset:1px;}
@@ -109,7 +109,8 @@
   .badge.aversion{background:#332020; color:#E08585; border:1px solid #E08585;}
 
   .extra-lots{margin-top:18px;}
-  .extra-lots table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .extra-lots table{width:100%; min-width:420px; border-collapse:collapse; font-size:12.5px;}
   .extra-lot-row{transition:background .15s ease;}
   .extra-lot-row:hover{background:var(--input-bg);}
   .extra-lots th{font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);}
@@ -191,10 +192,12 @@
   <div class="panel extra-lots">
     <h2>More lots, pulled straight from your chart</h2>
     <div class="hint">Computed live by this dashboard's own formula engine for its fictional demo chart (Jul 4, 1976, day birth). Click any row for the full breakdown. All eight below have a verified formula, reverse-engineered and confirmed exact against this project's original real chart before this dashboard ever had its own ephemeris built in. A few additional lots that once appeared here came from a real Astro-Seek export with no independently reconstructed formula, since there's no equivalent export for a chart that was never actually born, they've been left out rather than faked.</div>
+    <div class="table-scroll">
     <table>
       <thead><tr><th>Lot</th><th>Position</th><th>What it's for</th></tr></thead>
       <tbody id="extraLotsBody"></tbody>
     </table>
+    </div>
   </div>
 
   <footer>SEVEN HERMETIC LOTS · Hellenistic Arabic Parts · one interpretive layer among many, not a validated predictive method</footer>
