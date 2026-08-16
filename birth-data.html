@@ -131,7 +131,7 @@
 
   <div class="panel">
     <h2>Who this chart belongs to</h2>
-    <div class="hint">Birth date, time, and place feed both the age-based timing techniques (Annual Profections, Firdaria) and, now, real planetary positions, computed below from an inlined ephemeris library rather than needing a source like Astro-Seek. Latitude and longitude (decimal degrees) are required for that, birth place on its own is just a label, this dashboard has no geocoding built in to turn a city name into coordinates.</div>
+    <div class="hint">Birth date, time, and place feed both the age-based timing techniques (Annual Profections, Firdaria) and real planetary positions, computed below from an inlined ephemeris library rather than needing a source like Astro-Seek. Latitude and longitude (decimal degrees) are what the position calculation actually reads, type a birth place below and press "Find coordinates" to look them up automatically, or enter them by hand if you already know them.</div>
 
     <div class="name-callout">
       <b>Full name at birth</b>, not a nickname or your current legal name. Include middle name(s) exactly as they appeared on your birth record. This dashboard doesn't do numerology yet, but a future phase will, and Expression, Soul Urge, and Personality numbers are calculated letter-by-letter from the complete birth name, a shortened or updated name computes them wrong. Getting this field right now saves re-asking later.
@@ -150,8 +150,13 @@
       </div>
       <div>
         <div class="field-row"><label>UTC offset<span class="flabel-sub">e.g. -04:00 for EDT</span></label><input type="text" id="utcOffset" placeholder="-04:00"></div>
-        <div class="field-row"><label>Birth place<span class="flabel-sub">city, state/country, a label only, not used in any calculation</span></label><input type="text" id="birthPlace" placeholder="Philadelphia, PA"></div>
+        <div class="field-row"><label>Birth place<span class="flabel-sub">city, state/country, used below to find latitude/longitude</span></label><input type="text" id="birthPlace" placeholder="Philadelphia, PA"></div>
       </div>
+    </div>
+
+    <div class="field-row" style="margin-bottom:6px;">
+      <button class="ghost" id="btnGeocode" type="button">Find coordinates from birth place</button>
+      <div id="geocodeMsg" class="hint" style="margin-top:8px; margin-bottom:0;"></div>
     </div>
 
     <div class="grid-2">
@@ -162,7 +167,7 @@
         <div class="field-row"><label>Longitude<span class="flabel-sub">decimal degrees, east positive, west negative</span></label><input type="number" id="birthLon" step="0.0001" placeholder="-75.1652"></div>
       </div>
     </div>
-    <div class="hint" style="margin-top:-4px;">Degrees/minutes to decimal: degrees plus (minutes ÷ 60). 45°30'N is 45 + 30/60 = 45.5. Required, along with date, time, and UTC offset, for the automatic position calculation below, they're what turns a birth moment into an actual point on Earth the sky is computed relative to.</div>
+    <div class="hint" style="margin-top:-4px;">Filled in automatically by "Find coordinates" above, or enter them by hand: degrees plus (minutes ÷ 60), 45°30'N is 45 + 30/60 = 45.5. Required, along with date, time, and UTC offset, for the automatic position calculation below, they're what turns a birth moment into an actual point on Earth the sky is computed relative to. Coordinate lookup uses <a href="https://nominatim.openstreetmap.org" target="_blank" rel="noopener" style="color:var(--gold);">OpenStreetMap Nominatim</a>, a free public service, double-check the result against a map if the birth place is small, ambiguous, or historical.</div>
 
     <div class="hint" style="margin:10px 0 6px;">Sect<span style="color:var(--text-faint);"> · set automatically by "Calculate positions" below from whether the Sun lands above or below the horizon, still manually overridable here after</span></div>
     <div class="toggle-row" id="sectToggle">
@@ -820,6 +825,44 @@ function calculatePositions(){
 }
 
 document.getElementById('btnCalculate').addEventListener('click', calculatePositions);
+
+/* ---------------- geocode birth place -> lat/lon, via OpenStreetMap Nominatim (free, no key) ---------------- */
+async function geocodeBirthPlace(){
+  const place = document.getElementById('birthPlace').value.trim();
+  const btn = document.getElementById('btnGeocode');
+  const msg = document.getElementById('geocodeMsg');
+  if(!place){
+    msg.className = 'hint';
+    msg.textContent = 'Type a birth place above first (city, state/country works best).';
+    return;
+  }
+  btn.disabled = true;
+  const origLabel = btn.textContent;
+  btn.textContent = 'Looking up…';
+  msg.className = 'hint';
+  msg.textContent = '';
+  try{
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(place)}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if(!res.ok) throw new Error('bad response');
+    const results = await res.json();
+    if(!results || !results.length){
+      msg.textContent = `No match found for "${place}". Try adding a state/country, or a nearby larger city, or enter coordinates by hand below.`;
+    } else {
+      const r = results[0];
+      const lat = parseFloat(r.lat), lon = parseFloat(r.lon);
+      document.getElementById('birthLat').value = lat.toFixed(4);
+      document.getElementById('birthLon').value = lon.toFixed(4);
+      msg.innerHTML = `Found <b>${r.display_name}</b> — ${lat.toFixed(4)}, ${lon.toFixed(4)}. Double-check this against a map if the place is small, ambiguous, or historical (borders and names change), then adjust by hand if needed.`;
+    }
+  }catch(e){
+    msg.textContent = `Couldn't reach the coordinate lookup service right now (offline, or it's temporarily unavailable). Enter latitude/longitude by hand below.`;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = origLabel;
+  }
+}
+document.getElementById('btnGeocode').addEventListener('click', geocodeBirthPlace);
 
 /* ---------------- init: load saved chart into the form if one exists, else leave blank ---------------- */
 (function init(){
