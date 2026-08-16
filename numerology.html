@@ -50,7 +50,7 @@
   .toggle-row button.active{background:var(--fuchsia); color:#2A0E22;}
 
   .headline-grid{display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:center; margin-bottom:8px;}
-  @media (max-width:560px){.headline-grid{grid-template-columns:1fr;}}
+  @media (max-width:560px){.headline-grid{grid-template-columns:minmax(0,1fr);}}
   .headline-number{
     width:100px; height:100px; border-radius:50%; background:var(--input-bg); border:2px solid var(--fuchsia);
     display:flex; align-items:center; justify-content:center; font-family:'Fraunces', serif; font-size:40px;
@@ -85,7 +85,7 @@
   .badge.clean{background:var(--input-bg); color:var(--text-dim); border:1px solid var(--border);}
 
   .compare-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
-  @media (max-width:640px){.compare-grid{grid-template-columns:1fr;}}
+  @media (max-width:640px){.compare-grid{grid-template-columns:minmax(0,1fr);}}
   .compare-card{background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:14px;}
   .compare-card.active{border-color:var(--fuchsia);}
   .compare-card .cnum{font-family:'Fraunces', serif; font-size:26px; color:var(--text);}
